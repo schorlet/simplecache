@@ -39,11 +39,6 @@ type Entry struct {
 	dataSize0 int64
 }
 
-// func (e Entry) String() string {
-// return fmt.Sprintf("%s\n  fileSize:%d offset1:%d dataSize1:%d offset0:%d dataSize0:%d",
-// e.URL, e.fileSize, e.offset1, e.dataSize1, e.offset0, e.dataSize0)
-// }
-
 // OpenEntry returns the Entry specified by hash, in the cache at dir.
 func OpenEntry(hash uint64, dir string) (*Entry, error) {
 	name := path.Join(dir, fmt.Sprintf("%016x_0", hash))
@@ -69,12 +64,12 @@ func OpenEntry(hash uint64, dir string) (*Entry, error) {
 		return nil, err
 	}
 
-	err = entry.readStream0EOF(file)
+	err = entry.readStream0(file)
 	if err != nil {
 		return nil, err
 	}
 
-	err = entry.readStream1EOF(file)
+	err = entry.readStream1(file)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +85,10 @@ func (e *Entry) readHeader(file *os.File) error {
 	}
 
 	if header.Magic != initialMagicNumber {
-		return errors.New("bad EntryHeader MagicNumber")
+		return errors.New("entry: bad magic number")
 	}
 	if header.Version != entryVersionOnDisk {
-		return errors.New("bad EntryHeader Version")
+		return errors.New("entry: bad version")
 	}
 
 	// keyLen
@@ -105,7 +100,7 @@ func (e *Entry) readHeader(file *os.File) error {
 		return err
 	}
 	if header.KeyHash != superFastHash(key) {
-		return errors.New("bad EntryHeader KeyHash")
+		return errors.New("entry: bad key hash")
 	}
 
 	// URL
@@ -114,18 +109,22 @@ func (e *Entry) readHeader(file *os.File) error {
 	return nil
 }
 
-func (e *Entry) readStream0EOF(file *os.File) error {
+func (e *Entry) readStream0(file *os.File) error {
 	stream0EOF := new(entryEOF)
 
-	file.Seek(-1*entryEOFSize, 2)
-	err := binary.Read(file, binary.LittleEndian, stream0EOF)
+	_, err := file.Seek(-1*entryEOFSize, 2)
 	if err != nil {
 		return err
 	}
-	if stream0EOF.Magic != finalMagicNumber {
-		return errors.New("bad MagicNumber")
+
+	err = binary.Read(file, binary.LittleEndian, stream0EOF)
+	if err != nil {
+		return err
 	}
-	// fmt.Println(stream0EOF)
+
+	if stream0EOF.Magic != finalMagicNumber {
+		return errors.New("stream0: bad magic number")
+	}
 
 	// dataSize0
 	e.dataSize0 = int64(stream0EOF.StreamSize)
@@ -146,12 +145,12 @@ func (e *Entry) readStream0EOF(file *os.File) error {
 
 		if stream0EOF.HasCRC32() {
 			expectedCRC := crc32.ChecksumIEEE(stream0)
-			// fmt.Printf("expectedCRC: %08x\n", expectedCRC)
 			if stream0EOF.CRC != expectedCRC {
-				return errors.New("bad CRC 0")
+				return errors.New("stream0: bad CRC")
 			}
 		}
 
+		// TODO: untested
 		if stream0EOF.HasSHA256() {
 			var actualSum256 [sha256.Size]byte
 			offset256 := e.offset0 + e.dataSize0
@@ -159,13 +158,10 @@ func (e *Entry) readStream0EOF(file *os.File) error {
 			if err != nil {
 				return err
 			}
-			// fmt.Printf("actualSum256:   %x\n", actualSum256)
 
 			expectedSum256 := sha256.Sum256([]byte(e.URL))
-			// fmt.Printf("expectedSum256: %x\n", expectedSum256)
-
 			if actualSum256 != expectedSum256 {
-				return errors.New("bad Sum256")
+				return errors.New("stream0: bad Sum256")
 			}
 		}
 	}
@@ -173,18 +169,22 @@ func (e *Entry) readStream0EOF(file *os.File) error {
 	return nil
 }
 
-func (e *Entry) readStream1EOF(file *os.File) error {
+func (e *Entry) readStream1(file *os.File) error {
 	stream1EOF := new(entryEOF)
 
-	file.Seek(e.offset0-entryEOFSize, 0)
-	err := binary.Read(file, binary.LittleEndian, stream1EOF)
+	_, err := file.Seek(e.offset0-entryEOFSize, 0)
 	if err != nil {
 		return err
 	}
-	if stream1EOF.Magic != finalMagicNumber {
-		return errors.New("bad MagicNumber")
+
+	err = binary.Read(file, binary.LittleEndian, stream1EOF)
+	if err != nil {
+		return err
 	}
-	// fmt.Println(stream1EOF)
+
+	if stream1EOF.Magic != finalMagicNumber {
+		return errors.New("stream1: bad magic number")
+	}
 
 	// dataSize1
 	e.dataSize1 = int64(stream1EOF.StreamSize)
@@ -201,9 +201,8 @@ func (e *Entry) readStream1EOF(file *os.File) error {
 		}
 
 		expectedCRC := crc32.ChecksumIEEE(stream1)
-		// fmt.Printf("expectedCRC: %08x\n", expectedCRC)
 		if stream1EOF.CRC != expectedCRC {
-			return errors.New("bad CRC 1")
+			return errors.New("stream1: bad CRC")
 		}
 	}
 
@@ -233,10 +232,16 @@ func (e Entry) Header() (http.Header, error) {
 		ResponseTime int64
 		HeaderSize   int32
 	}
-	binary.Read(reader, binary.LittleEndian, &meta)
+	err = binary.Read(reader, binary.LittleEndian, &meta)
+	if err != nil {
+		return nil, err
+	}
 
 	buf := make([]byte, meta.HeaderSize)
-	binary.Read(reader, binary.LittleEndian, buf)
+	err = binary.Read(reader, binary.LittleEndian, buf)
+	if err != nil {
+		return nil, err
+	}
 
 	header := make(http.Header)
 	lines := bytes.Split(buf, []byte{0})

@@ -2,6 +2,7 @@ package simplecache
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -30,15 +31,15 @@ func (c SimpleCache) OpenURL(url string) (*Entry, error) {
 	return OpenEntry(hash, c.dir)
 }
 
-// private: ---------------------------------
-
 func openCache(dir string) (*SimpleCache, error) {
 	err := checkCache(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	file, err := os.Open(filepath.Join(dir, "index-dir", "the-real-index"))
+	name := filepath.Join(dir, "index-dir", "the-real-index")
+
+	file, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -49,16 +50,37 @@ func openCache(dir string) (*SimpleCache, error) {
 
 func checkCache(dir string) error {
 	name := filepath.Clean(dir)
+
 	info, err := os.Stat(name)
 	if err != nil {
 		return err
 	}
+
 	if !info.IsDir() {
-		return fmt.Errorf("cdc: not a directory: %s", dir)
+		return fmt.Errorf("not a directory: %s", dir)
 	}
 
-	_, err = os.Stat(filepath.Join(name, "index"))
-	return err
+	file, err := os.Open(filepath.Join(name, "index"))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	index := new(fakeIndex)
+	err = binary.Read(file, binary.LittleEndian, index)
+	if err != nil {
+		return err
+	}
+
+	if index.Magic != initialMagicNumber {
+		return errors.New("index: bad magic number")
+	}
+
+	if index.Version < 6 {
+		return errors.New("index: bad version")
+	}
+
+	return nil
 }
 
 func readIndex(file *os.File) (*SimpleCache, error) {
@@ -67,10 +89,9 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println(index)
 
 	if index.Magic != indexMagicNumber {
-		log.Fatal("bad MagicNumber")
+		return nil, errors.New("the-real-index: bad magic number")
 	}
 
 	if index.Version >= 7 {
@@ -79,7 +100,6 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 		if err != nil {
 			return nil, err
 		}
-		// fmt.Printf("Reason:%d\n", reason)
 	}
 
 	dir := filepath.Dir
@@ -109,13 +129,6 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 
 		cache.key[i] = entry.URL
 	}
-
-	// var modified int64
-	// err = binary.Read(file, binary.LittleEndian, &modified)
-	// if err != nil {
-	// log.Fatal(err)
-	// }
-	// fmt.Printf("Modified:%s\n", timeFormat(winTime(modified)))
 
 	return cache, err
 }

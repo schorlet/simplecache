@@ -25,6 +25,7 @@ func TestCrawl(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		if url != entry.URL {
 			t.Fatalf("got: %s, want: %s", entry.URL, url)
 		}
@@ -33,9 +34,11 @@ func TestCrawl(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		if len(header) == 0 {
 			t.Fatal("got: empty header")
 		}
+
 		clength := header.Get("Content-Length")
 		nlength, err := strconv.ParseInt(clength, 10, 64)
 		if err != nil {
@@ -46,11 +49,16 @@ func TestCrawl(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		n, err := io.Copy(ioutil.Discard, body)
 		if err != nil {
 			t.Fatal(err)
 		}
-		body.Close()
+
+		err = body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if n != nlength {
 			t.Fatalf("got: %d, want: %d", n, nlength)
@@ -90,12 +98,18 @@ func TestEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	n, err := io.Copy(ioutil.Discard, body)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if n != 5409 {
 		t.Fatalf("got: %d, want: 5409", n)
 	}
-	body.Close()
+
+	err = body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
