@@ -76,7 +76,7 @@ func checkCache(dir string) error {
 		return errors.New("index: bad magic number")
 	}
 
-	if index.Version < 6 {
+	if index.Version < indexVersion {
 		return errors.New("index: bad version")
 	}
 
@@ -93,13 +93,8 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	if index.Magic != indexMagicNumber {
 		return nil, errors.New("the-real-index: bad magic number")
 	}
-
-	if index.Version >= 7 {
-		var reason uint32
-		err := binary.Read(file, binary.LittleEndian, &reason)
-		if err != nil {
-			return nil, err
-		}
+	if index.Version != indexVersion {
+		return nil, errors.New("the-real-index: bad version")
 	}
 
 	dir := filepath.Dir

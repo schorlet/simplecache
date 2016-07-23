@@ -10,20 +10,23 @@ import (
 )
 
 const indexMagicNumber uint64 = 0x656e74657220796f
+const indexVersion uint32 = 6
 
 const indexHeaderSize int64 = 36
 const indexEntrySize int64 = 24
 
+const initialMagicNumber uint64 = 0xfcfb6d1ba7725c30
+const finalMagicNumber uint64 = 0xf4fa6f45970d41d8
+const entryVersion uint32 = 5
+
 const entryHeaderSize int64 = 20
 const entryEOFSize int64 = 20
 
-const entryVersionOnDisk uint32 = 5
-
-const initialMagicNumber uint64 = 0xfcfb6d1ba7725c30
-const finalMagicNumber uint64 = 0xf4fa6f45970d41d8
-
 const flagCRC32 uint32 = 1
 const flagSHA256 uint32 = 2 // (1U << 1)
+
+const sparseMagicNumber uint64 = 0xeb97bf016553676b
+const sparseRangeHeaderSize int64 = 28
 
 // fakeIndex is the content of the index file.
 type fakeIndex struct {
@@ -92,6 +95,35 @@ func (e entryEOF) HasSHA256() bool {
 	return e.Flag&flagSHA256 != 0
 }
 
+// sparseRangeHeader is the header of a stream range in a sparse file.
+type sparseRangeHeader struct {
+	Magic  uint64
+	Offset int64
+	Len    int64
+	CRC    uint32
+}
+
+// sparseRange is a stream range in a sparse file.
+type sparseRange struct {
+	Offset     int64
+	Len        int64
+	CRC        uint32
+	FileOffset int64
+}
+
+type sparseRanges []sparseRange
+
+func (ranges sparseRanges) Len() int {
+	return len(ranges)
+}
+func (ranges sparseRanges) Swap(i, j int) {
+	ranges[i], ranges[j] = ranges[j], ranges[i]
+}
+func (ranges sparseRanges) Less(i, j int) bool {
+	var rng0, rng1 = ranges[i], ranges[j]
+	return rng0.Offset < rng1.Offset
+}
+
 // unix epoch - win epoch (µsec)
 // (1970-01-01 - 1601-01-01)
 const delta = int64(11644473600000000)
@@ -119,5 +151,10 @@ func init() {
 	entryEnd := new(entryEOF)
 	if n := binary.Size(entryEnd); int64(n) != entryEOFSize {
 		log.Fatal("entryEOF size error:", n)
+	}
+
+	rangeHeader := new(sparseRangeHeader)
+	if n := binary.Size(rangeHeader); int64(n) != sparseRangeHeaderSize {
+		log.Fatal("sparseHeader size error:", n)
 	}
 }

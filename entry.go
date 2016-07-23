@@ -87,7 +87,7 @@ func (e *Entry) readHeader(file *os.File) error {
 	if header.Magic != initialMagicNumber {
 		return errors.New("entry: bad magic number")
 	}
-	if header.Version != entryVersionOnDisk {
+	if header.Version != entryVersion {
 		return errors.New("entry: bad version")
 	}
 
@@ -144,22 +144,22 @@ func (e *Entry) readStream0(file *os.File) error {
 		}
 
 		if stream0EOF.HasCRC32() {
-			expectedCRC := crc32.ChecksumIEEE(stream0)
-			if stream0EOF.CRC != expectedCRC {
+			actualCRC := crc32.ChecksumIEEE(stream0)
+			if actualCRC != stream0EOF.CRC {
 				return errors.New("stream0: bad CRC")
 			}
 		}
 
 		// TODO: untested
 		if stream0EOF.HasSHA256() {
-			var actualSum256 [sha256.Size]byte
+			var expectedSum256 [sha256.Size]byte
 			offset256 := e.offset0 + e.dataSize0
-			_, err = file.ReadAt(actualSum256[:], offset256)
+			_, err = file.ReadAt(expectedSum256[:], offset256)
 			if err != nil {
 				return err
 			}
 
-			expectedSum256 := sha256.Sum256([]byte(e.URL))
+			actualSum256 := sha256.Sum256([]byte(e.URL))
 			if actualSum256 != expectedSum256 {
 				return errors.New("stream0: bad Sum256")
 			}
@@ -193,15 +193,15 @@ func (e *Entry) readStream1(file *os.File) error {
 	e.offset1 = entryHeaderSize + e.keyLen
 
 	// verifyStream1
-	if stream1EOF.HasCRC32() {
+	if e.dataSize1 > 0 && stream1EOF.HasCRC32() {
 		stream1 := make([]byte, e.dataSize1)
 		_, err := file.ReadAt(stream1, e.offset1)
 		if err != nil {
 			return err
 		}
 
-		expectedCRC := crc32.ChecksumIEEE(stream1)
-		if stream1EOF.CRC != expectedCRC {
+		actualCRC := crc32.ChecksumIEEE(stream1)
+		if actualCRC != stream1EOF.CRC {
 			return errors.New("stream1: bad CRC")
 		}
 	}
@@ -260,6 +260,10 @@ func (e Entry) Header() (http.Header, error) {
 
 // Body returns the HTTP body.
 func (e Entry) Body() (io.ReadCloser, error) {
+	if e.dataSize1 == 0 {
+		return newSparseReader(e.hash, e.dir)
+	}
+
 	name := path.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
