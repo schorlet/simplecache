@@ -9,24 +9,30 @@ import (
 	"time"
 )
 
-const indexMagicNumber uint64 = 0x656e74657220796f
-const indexVersion uint32 = 6
+const (
+	indexMagicNumber uint64 = 0x656e74657220796f
+	indexVersion     uint32 = 6
 
-const indexHeaderSize int64 = 36
-const indexEntrySize int64 = 24
+	indexHeaderSize int64 = 36
+	indexEntrySize  int64 = 24
+)
 
-const initialMagicNumber uint64 = 0xfcfb6d1ba7725c30
-const finalMagicNumber uint64 = 0xf4fa6f45970d41d8
-const entryVersion uint32 = 5
+const (
+	initialMagicNumber uint64 = 0xfcfb6d1ba7725c30
+	finalMagicNumber   uint64 = 0xf4fa6f45970d41d8
+	entryVersion       uint32 = 5
 
-const entryHeaderSize int64 = 20
-const entryEOFSize int64 = 20
+	entryHeaderSize int64 = 20
+	entryEOFSize    int64 = 20
 
-const flagCRC32 uint32 = 1
-const flagSHA256 uint32 = 2 // (1U << 1)
+	flagCRC32  uint32 = 1
+	flagSHA256 uint32 = 2 // (1U << 1)
+)
 
-const sparseMagicNumber uint64 = 0xeb97bf016553676b
-const sparseRangeHeaderSize int64 = 28
+const (
+	sparseMagicNumber     uint64 = 0xeb97bf016553676b
+	sparseRangeHeaderSize int64  = 28
+)
 
 // fakeIndex is the content of the index file.
 type fakeIndex struct {

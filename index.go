@@ -11,27 +11,12 @@ import (
 
 // SimpleCache gives read-access to the simple cache.
 type SimpleCache struct {
-	dir string   // cache directory
-	key []string // []entry.key
+	dir  string   // cache directory
+	urls []string // []entry.key
 }
 
 // Open opens the cache at dir.
 func Open(dir string) (*SimpleCache, error) {
-	return openCache(dir)
-}
-
-// URLs returns all the URLs currently stored.
-func (c SimpleCache) URLs() []string {
-	return c.key
-}
-
-// OpenURL returns the Entry specified by url.
-func (c SimpleCache) OpenURL(url string) (*Entry, error) {
-	hash := EntryHash(url)
-	return OpenEntry(hash, c.dir)
-}
-
-func openCache(dir string) (*SimpleCache, error) {
 	err := checkCache(dir)
 	if err != nil {
 		return nil, err
@@ -48,10 +33,20 @@ func openCache(dir string) (*SimpleCache, error) {
 	return readIndex(file)
 }
 
-func checkCache(dir string) error {
-	name := filepath.Clean(dir)
+// OpenURL returns the Entry specified by url.
+// If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
+func (c SimpleCache) OpenURL(url string) (*Entry, error) {
+	hash := EntryHash(url)
+	return OpenEntry(hash, c.dir)
+}
 
-	info, err := os.Stat(name)
+// URLs returns all the URLs currently stored.
+func (c SimpleCache) URLs() []string {
+	return c.urls
+}
+
+func checkCache(dir string) error {
+	info, err := os.Stat(dir)
 	if err != nil {
 		return err
 	}
@@ -60,7 +55,7 @@ func checkCache(dir string) error {
 		return fmt.Errorf("not a directory: %s", dir)
 	}
 
-	file, err := os.Open(filepath.Join(name, "index"))
+	file, err := os.Open(filepath.Join(dir, "index"))
 	if err != nil {
 		return err
 	}
@@ -101,7 +96,7 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 
 	cache := &SimpleCache{
 		dir: dir(dir(file.Name())),
-		key: make([]string, index.EntryCount),
+		urls: make([]string, index.EntryCount),
 	}
 
 	buf := make([]byte, 8)
@@ -122,7 +117,7 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 			continue
 		}
 
-		cache.key[i] = entry.URL
+		cache.urls[i] = entry.URL
 	}
 
 	return cache, err

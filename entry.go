@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 // ErrNotFound is returned when an entry is not found.
@@ -40,12 +40,17 @@ type Entry struct {
 }
 
 // OpenEntry returns the Entry specified by hash, in the cache at dir.
+// If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
 func OpenEntry(hash uint64, dir string) (*Entry, error) {
-	name := path.Join(dir, fmt.Sprintf("%016x_0", hash))
+	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
-	if err != nil {
+
+	if os.IsNotExist(err) {
 		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
 	}
+
 	defer file.Close()
 
 	stat, err := file.Stat()
@@ -99,6 +104,7 @@ func (e *Entry) readHeader(file *os.File) error {
 	if err != nil {
 		return err
 	}
+
 	if header.KeyHash != superFastHash(key) {
 		return errors.New("entry: bad key hash")
 	}
@@ -112,7 +118,7 @@ func (e *Entry) readHeader(file *os.File) error {
 func (e *Entry) readStream0(file *os.File) error {
 	stream0EOF := new(entryEOF)
 
-	_, err := file.Seek(-1*entryEOFSize, 2)
+	_, err := file.Seek(-1*entryEOFSize, os.SEEK_END)
 	if err != nil {
 		return err
 	}
@@ -154,6 +160,7 @@ func (e *Entry) readStream0(file *os.File) error {
 		if stream0EOF.HasSHA256() {
 			var expectedSum256 [sha256.Size]byte
 			offset256 := e.offset0 + e.dataSize0
+
 			_, err = file.ReadAt(expectedSum256[:], offset256)
 			if err != nil {
 				return err
@@ -172,7 +179,7 @@ func (e *Entry) readStream0(file *os.File) error {
 func (e *Entry) readStream1(file *os.File) error {
 	stream1EOF := new(entryEOF)
 
-	_, err := file.Seek(e.offset0-entryEOFSize, 0)
+	_, err := file.Seek(e.offset0-entryEOFSize, os.SEEK_SET)
 	if err != nil {
 		return err
 	}
@@ -211,11 +218,15 @@ func (e *Entry) readStream1(file *os.File) error {
 
 // Header returns the HTTP header.
 func (e Entry) Header() (http.Header, error) {
-	name := path.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
+	name := filepath.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
-	if err != nil {
+
+	if os.IsNotExist(err) {
 		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
 	}
+
 	defer file.Close()
 
 	stream0 := make([]byte, e.dataSize0)
@@ -223,7 +234,6 @@ func (e Entry) Header() (http.Header, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(stream0)
 
 	var meta struct {
 		InfoSize     int32
@@ -232,6 +242,8 @@ func (e Entry) Header() (http.Header, error) {
 		ResponseTime int64
 		HeaderSize   int32
 	}
+
+	reader := bytes.NewReader(stream0)
 	err = binary.Read(reader, binary.LittleEndian, &meta)
 	if err != nil {
 		return nil, err
@@ -264,11 +276,15 @@ func (e Entry) Body() (io.ReadCloser, error) {
 		return newSparseReader(e.hash, e.dir)
 	}
 
-	name := path.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
+	name := filepath.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
-	if err != nil {
+
+	if os.IsNotExist(err) {
 		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
 	}
+
 	defer file.Close()
 
 	stream1 := make([]byte, e.dataSize1)

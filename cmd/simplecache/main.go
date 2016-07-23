@@ -1,4 +1,4 @@
-// Package simplecache helps reading Chromium simple cache on command line.
+// Command simplecache helps reading Chromium simple cache on command line.
 package main
 
 import (
@@ -16,14 +16,14 @@ const usage = `simplecache is a tool for reading Chromium simple cache v6.
 
 Usage:
 
-    simplecache command [arguments] CACHEDIR
+    simplecache command [flag] CACHEDIR
 
 The commands are:
     list        list entries
     header      print entry header
     body        print entry body
 
-The arguments are:
+The flags are:
     -url string        entry url
     -hash string       entry hash
 
@@ -53,20 +53,17 @@ func main() {
 
 	err := cmdline.Parse(os.Args[2:])
 	if err != nil {
-		fmt.Println(usage)
-		return
+		log.Fatal("error:", err)
 	}
 
 	if cmdline.NArg() != 1 {
 		printUsage()
 	}
-
-	// init
-	dir := cmdline.Arg(0)
+	cachedir := cmdline.Arg(0)
 
 	// exec
 	if command == "list" {
-		cache, err := simplecache.Open(dir)
+		cache, err := simplecache.Open(cachedir)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -80,7 +77,7 @@ func main() {
 		printUsage()
 
 	} else {
-		entry := openEntry(*aURL, *aHash, dir)
+		entry := openEntry(*aURL, *aHash, cachedir)
 
 		if command == "header" {
 			printHeader(entry)
@@ -98,10 +95,10 @@ func openEntry(aURL, aHash, dir string) *simplecache.Entry {
 	var hash uint64
 	var err error
 
-	if aURL != "" {
-		hash = simplecache.EntryHash(aURL)
-	} else {
+	if aHash != "" {
 		hash, err = strconv.ParseUint(aHash, 16, 64)
+	} else {
+		hash = simplecache.EntryHash(aURL)
 	}
 
 	if err != nil {

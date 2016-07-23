@@ -7,15 +7,18 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 )
 
 func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
-	name := path.Join(dir, fmt.Sprintf("%016x_s", hash))
+	name := filepath.Join(dir, fmt.Sprintf("%016x_s", hash))
 	file, err := os.Open(name)
-	if err != nil {
+
+	if os.IsNotExist(err) {
 		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
 	}
 
 	header := new(entryHeader)
@@ -27,28 +30,76 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 	if header.Magic != initialMagicNumber {
 		return nil, errors.New("sparse: bad magic number")
 	}
+
 	// entryVersion ??
 	if header.Version != indexVersion {
 		return nil, errors.New("sparse: bad version")
 	}
 
-	reader := &sparseReader{
-		file: file,
+	ranges, err := scan(file, entryHeaderSize+int64(header.KeyLen))
+	if err != nil {
+		return nil, err
 	}
 
-	offset := entryHeaderSize + int64(header.KeyLen)
-	err = reader.scan(offset)
-
-	return reader, err
+	return &sparseReader{
+		file:   file,
+		ranges: ranges,
+	}, nil
 }
 
 // sparseReader reads sparse files.
+//
+// An sparse file consists of:
+//	- an EntryHeader
+//	- many of the following:
+//		- a SparseRangeHeader
+//		- a range of stream
 type sparseReader struct {
 	file   *os.File
 	ranges sparseRanges
 	index  int
 	stream []byte
 	r, w   int64
+}
+
+func scan(file *os.File, offset int64) (sparseRanges, error) {
+	var ranges sparseRanges
+	var err error
+
+	for {
+		_, err = file.Seek(offset, os.SEEK_SET)
+		if err != nil {
+			break
+		}
+
+		rangeHeader := new(sparseRangeHeader)
+		err = binary.Read(file, binary.LittleEndian, rangeHeader)
+		if err != nil {
+			break
+		}
+
+		if rangeHeader.Magic != sparseMagicNumber {
+			err = errors.New("range: bad magic number")
+			break
+		}
+
+		rng := sparseRange{
+			Offset:     rangeHeader.Offset,
+			Len:        rangeHeader.Len,
+			CRC:        rangeHeader.CRC,
+			FileOffset: offset + sparseRangeHeaderSize,
+		}
+		ranges = append(ranges, rng)
+
+		offset += sparseRangeHeaderSize + rangeHeader.Len
+	}
+
+	if err != io.EOF {
+		return nil, err
+	}
+
+	sort.Sort(ranges)
+	return ranges, nil
 }
 
 func (sr sparseReader) Close() error {
@@ -72,58 +123,15 @@ func (sr *sparseReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (sr *sparseReader) scan(offset int64) (err error) {
-	for {
-		_, err = sr.file.Seek(offset, 0)
-		if err != nil {
-			break
-		}
-
-		rangeHeader := new(sparseRangeHeader)
-		err = binary.Read(sr.file, binary.LittleEndian, rangeHeader)
-		if err != nil {
-			break
-		}
-
-		if rangeHeader.Magic != sparseMagicNumber {
-			err = errors.New("range: bad magic number")
-			break
-		}
-
-		rng := sparseRange{
-			Offset:     rangeHeader.Offset,
-			Len:        rangeHeader.Len,
-			CRC:        rangeHeader.CRC,
-			FileOffset: offset + sparseRangeHeaderSize,
-		}
-
-		sr.ranges = append(sr.ranges, rng)
-
-		offset += sparseRangeHeaderSize + rangeHeader.Len
-	}
-
-	if err != io.EOF {
-		return err
-	}
-
-	sort.Sort(sr.ranges)
-	return nil
-}
-
 func (sr *sparseReader) fill() error {
 	if sr.index == len(sr.ranges) {
 		return io.EOF
 	}
 
 	rng := sr.ranges[sr.index]
-
-	_, err := sr.file.Seek(rng.FileOffset, 0)
-	if err != nil {
-		return err
-	}
-
 	sr.stream = make([]byte, rng.Len)
-	_, err = io.ReadFull(sr.file, sr.stream)
+
+	_, err := sr.file.ReadAt(sr.stream, rng.FileOffset)
 	if err != nil {
 		return err
 	}
