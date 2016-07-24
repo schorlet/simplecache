@@ -38,31 +38,10 @@ func printUsage() {
 func main() {
 	log.SetFlags(0)
 
-	if len(os.Args) == 1 {
-		printUsage()
-	}
+	var cmd, url, hash, cachedir string
+	parseArgs(&cmd, &url, &hash, &cachedir)
 
-	// command
-	command := os.Args[1]
-
-	// flags
-	cmdline := flag.NewFlagSet("", flag.ExitOnError)
-	cmdline.Usage = printUsage
-	aURL := cmdline.String("url", "", "entry url")
-	aHash := cmdline.String("hash", "", "entry hash")
-
-	err := cmdline.Parse(os.Args[2:])
-	if err != nil {
-		log.Fatal("error:", err)
-	}
-
-	if cmdline.NArg() != 1 {
-		printUsage()
-	}
-	cachedir := cmdline.Arg(0)
-
-	// exec
-	if command == "list" {
+	if cmd == "list" {
 		cache, err := simplecache.Open(cachedir)
 		if err != nil {
 			log.Fatal(err)
@@ -73,39 +52,65 @@ func main() {
 			fmt.Printf("%016x %s\n", hash, url)
 		}
 
-	} else if cmdline.NFlag() != 1 {
-		printUsage()
+	} else if cmd == "header" {
+		entry := openEntry(url, hash, cachedir)
+		printHeader(entry)
+
+	} else if cmd == "body" {
+		entry := openEntry(url, hash, cachedir)
+		printBody(entry)
 
 	} else {
-		entry := openEntry(*aURL, *aHash, cachedir)
-
-		if command == "header" {
-			printHeader(entry)
-
-		} else if command == "body" {
-			printBody(entry)
-
-		} else {
-			log.Fatalf("unknown command: %s", command)
-		}
+		log.Fatalf("unknown command: %s", cmd)
 	}
 }
 
-func openEntry(aURL, aHash, dir string) *simplecache.Entry {
-	var hash uint64
+func parseArgs(cmd, url, hash, cachedir *string) {
+	if len(os.Args) == 1 {
+		printUsage()
+	}
+
+	// cmd
+	*cmd = os.Args[1]
+
+	// flags
+	flags := flag.NewFlagSet("", flag.ExitOnError)
+	flags.Usage = printUsage
+
+	flags.StringVar(url, "url", "", "entry url")
+	flags.StringVar(hash, "hash", "", "entry hash")
+
+	err := flags.Parse(os.Args[2:])
+	if err != nil {
+		log.Fatal("error:", err)
+	}
+
+	if *cmd != "list" && flags.NFlag() != 1 {
+		printUsage()
+	}
+
+	if flags.NArg() != 1 {
+		printUsage()
+	}
+
+	*cachedir = flags.Arg(0)
+}
+
+func openEntry(url, hash, dir string) *simplecache.Entry {
+	var id uint64
 	var err error
 
-	if aHash != "" {
-		hash, err = strconv.ParseUint(aHash, 16, 64)
+	if hash != "" {
+		id, err = strconv.ParseUint(hash, 16, 64)
 	} else {
-		hash = simplecache.EntryHash(aURL)
+		id = simplecache.EntryHash(url)
 	}
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	entry, err := simplecache.OpenEntry(hash, dir)
+	entry, err := simplecache.OpenEntry(id, dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,6 +136,11 @@ func printBody(entry *simplecache.Entry) {
 	defer body.Close()
 
 	_, err = io.Copy(os.Stdout, body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}

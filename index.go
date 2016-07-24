@@ -95,7 +95,7 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	dir := filepath.Dir
 
 	cache := &SimpleCache{
-		dir: dir(dir(file.Name())),
+		dir:  dir(dir(file.Name())),
 		urls: make([]string, index.EntryCount),
 	}
 

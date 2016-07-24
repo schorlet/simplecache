@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 )
 
-// ErrNotFound is returned when an entry is not found.
+// ErrNotFound is returned when an entry does not exist.
 var ErrNotFound = errors.New("entry not found")
 
 // Entry represents an entry as stored in the cache.

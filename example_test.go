@@ -33,12 +33,17 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer body.Close()
 
 	config, err := png.DecodeConfig(body)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Printf("PNG image data, %d x %d\n", config.Width, config.Height)
 
 	// Output:

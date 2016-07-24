@@ -36,7 +36,8 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 		return nil, errors.New("sparse: bad version")
 	}
 
-	ranges, err := scan(file, entryHeaderSize+int64(header.KeyLen))
+	offset := entryHeaderSize + int64(header.KeyLen)
+	ranges, err := scan(file, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +54,7 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 //	- an EntryHeader
 //	- many of the following:
 //		- a SparseRangeHeader
-//		- a range of stream
+//		- a SparseRange
 type sparseReader struct {
 	file   *os.File
 	ranges sparseRanges
