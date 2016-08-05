@@ -142,34 +142,32 @@ func (e *Entry) readStream0(file *os.File) error {
 	}
 
 	// verifyStream0
-	if stream0EOF.Flag != 0 {
+
+	if stream0EOF.HasCRC32() {
 		stream0 := make([]byte, e.dataSize0)
 		_, err := file.ReadAt(stream0, e.offset0)
 		if err != nil {
 			return err
 		}
 
-		if stream0EOF.HasCRC32() {
-			actualCRC := crc32.ChecksumIEEE(stream0)
-			if actualCRC != stream0EOF.CRC {
-				return errors.New("stream0: bad CRC")
-			}
+		actualCRC := crc32.ChecksumIEEE(stream0)
+		if actualCRC != stream0EOF.CRC {
+			return errors.New("stream0: bad CRC")
+		}
+	}
+
+	if stream0EOF.HasSHA256() {
+		var expectedSum256 [sha256.Size]byte
+		offset256 := e.offset0 + e.dataSize0
+
+		_, err = file.ReadAt(expectedSum256[:], offset256)
+		if err != nil {
+			return err
 		}
 
-		// TODO: untested
-		if stream0EOF.HasSHA256() {
-			var expectedSum256 [sha256.Size]byte
-			offset256 := e.offset0 + e.dataSize0
-
-			_, err = file.ReadAt(expectedSum256[:], offset256)
-			if err != nil {
-				return err
-			}
-
-			actualSum256 := sha256.Sum256([]byte(e.URL))
-			if actualSum256 != expectedSum256 {
-				return errors.New("stream0: bad Sum256")
-			}
+		actualSum256 := sha256.Sum256([]byte(e.URL))
+		if actualSum256 != expectedSum256 {
+			return errors.New("stream0: bad Sum256")
 		}
 	}
 

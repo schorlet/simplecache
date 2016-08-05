@@ -88,8 +88,10 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	if index.Magic != indexMagicNumber {
 		return nil, errors.New("the-real-index: bad magic number")
 	}
-	if index.Version != indexVersion {
-		return nil, errors.New("the-real-index: bad version")
+	if index.Version < indexVersion {
+		return nil, fmt.Errorf(
+			"the-real-index: bad version, want:>=%d, got:%d",
+			indexVersion, index.Version)
 	}
 
 	dir := filepath.Dir
@@ -100,7 +102,11 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	}
 
 	buf := make([]byte, 8)
+
 	offset := indexHeaderSize
+	if index.Version > indexVersion {
+		offset += 4
+	}
 
 	for i := uint64(0); i < index.EntryCount; i++ {
 		_, err = file.ReadAt(buf, offset)

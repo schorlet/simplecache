@@ -32,7 +32,7 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 	}
 
 	// entryVersion ??
-	if header.Version != indexVersion {
+	if header.Version < indexVersion {
 		return nil, errors.New("sparse: bad version")
 	}
 
