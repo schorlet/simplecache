@@ -7,12 +7,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // SimpleCache gives read-access to the simple cache.
 type SimpleCache struct {
-	dir  string   // cache directory
-	urls []string // []entry.key
+	dir    string // cache directory
+	once   sync.Once
+	hashes []uint64 // []entry.hash
+	urls   []string // []entry.key
 }
 
 // Open opens the cache at dir.
@@ -33,15 +36,36 @@ func Open(dir string) (*SimpleCache, error) {
 	return readIndex(file)
 }
 
+// Hashes returns all Entries key hash.
+func (c *SimpleCache) Hashes() []uint64 {
+	hashes := make([]uint64, len(c.hashes))
+	copy(hashes, c.hashes)
+	return hashes
+}
+
 // OpenURL returns the Entry specified by url.
 // If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
-func (c SimpleCache) OpenURL(url string) (*Entry, error) {
+func (c *SimpleCache) OpenURL(url string) (*Entry, error) {
 	hash := EntryHash(url)
 	return OpenEntry(hash, c.dir)
 }
 
+func (c *SimpleCache) readURLs() {
+	c.urls = make([]string, 0, len(c.hashes))
+
+	for _, hash := range c.hashes {
+		url, err := readURL(hash, c.dir)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		c.urls = append(c.urls, url)
+	}
+}
+
 // URLs returns all the URLs currently stored.
-func (c SimpleCache) URLs() []string {
+func (c *SimpleCache) URLs() []string {
+	c.once.Do(c.readURLs)
 	return c.urls
 }
 
@@ -97,33 +121,25 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	dir := filepath.Dir
 
 	cache := &SimpleCache{
-		dir:  dir(dir(file.Name())),
-		urls: make([]string, index.EntryCount),
+		dir:    dir(dir(file.Name())),
+		hashes: make([]uint64, index.EntryCount),
 	}
 
-	buf := make([]byte, 8)
-
-	offset := indexHeaderSize
 	if index.Version > indexVersion {
-		offset += 4
+		var reasonSize int64 = 4 // last write reason
+		_, err = file.Seek(reasonSize, os.SEEK_CUR)
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	entry := new(indexEntry)
 	for i := uint64(0); i < index.EntryCount; i++ {
-		_, err = file.ReadAt(buf, offset)
+		err = binary.Read(file, binary.LittleEndian, entry)
 		if err != nil {
-			break
+			return nil, err
 		}
-
-		hash := binary.LittleEndian.Uint64(buf)
-		offset += indexEntrySize
-
-		entry, ere := OpenEntry(hash, cache.dir)
-		if ere != nil {
-			log.Println(ere)
-			continue
-		}
-
-		cache.urls[i] = entry.URL
+		cache.hashes[i] = entry.Hash
 	}
 
 	return cache, err

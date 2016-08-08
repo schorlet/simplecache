@@ -82,6 +82,22 @@ func OpenEntry(hash uint64, dir string) (*Entry, error) {
 	return entry, nil
 }
 
+func readURL(hash uint64, dir string) (string, error) {
+	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
+	file, err := os.Open(name)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	entry := new(Entry)
+	err = entry.readHeader(file)
+	if err != nil {
+		return "", err
+	}
+	return entry.URL, nil
+}
+
 func (e *Entry) readHeader(file *os.File) error {
 	header := new(entryHeader)
 	err := binary.Read(file, binary.LittleEndian, header)

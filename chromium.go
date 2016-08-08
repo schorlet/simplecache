@@ -53,9 +53,9 @@ type indexHeader struct {
 
 // indexEntry is an entry in the the-real-index file.
 type indexEntry struct {
-	Hash      uint64
-	LastUsed  int64
-	EntrySize uint64
+	Hash     uint64
+	LastUsed int64
+	Size     uint64
 }
 
 // EntryHash returns the hash of the specified key.
@@ -136,6 +136,9 @@ const delta = int64(11644473600000000)
 
 func winTime(µsec int64) time.Time {
 	return time.Unix(0, (µsec-delta)*1e3)
+}
+func fromTime(t time.Time) int64 {
+	return t.UnixNano()/1e3 + delta
 }
 
 func init() {

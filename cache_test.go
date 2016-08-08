@@ -15,12 +15,26 @@ func TestCrawl(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	hashes := cache.Hashes()
+	if len(hashes) == 0 {
+		t.Fatal("empty cache hashes")
+	}
+
+	urls := cache.URLs()
+	if len(urls) == 0 {
+		t.Fatal("empty cache urls")
+	}
+
+	if len(hashes) != len(urls) {
+		t.Fatal("mismatch len")
+	}
+
 	_, err = cache.OpenURL("http://foo.com")
 	if err != simplecache.ErrNotFound {
 		t.Fatalf("got: %v, want: %v", err, simplecache.ErrNotFound)
 	}
 
-	for _, url := range cache.URLs() {
+	for _, url := range urls {
 		entry, err := cache.OpenURL(url)
 		if err != nil {
 			t.Fatal(err)
