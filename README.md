@@ -107,7 +107,7 @@ The index file header (struct entryHeader) is 20 bytes in size and consists of:
 
 #### Stream EOF
 
-The separator (struct entryEOF) contains information about the stream it succeeds. It is 20 bytes in size and consists of:
+The separator (struct entryEOF) contains information about the stream above. It is 20 bytes in size and consists of:
 
  offset | size | value              | description
  ------ | ---- | ------------------ | -----------
@@ -168,7 +168,7 @@ The index file header (struct entryHeader) is 20 bytes in size and consists of:
 
 #### Range header
 
-The range header (struct sparseRangeHeader) contains information about the range stream it points to. It is 28 bytes in size and consists of:
+The range header (struct sparseRangeHeader) contains information about the following range stream. It is 28 bytes in size and consists of:
 
  offset | size | value              | description
  ------ | ---- | ------------------ | -----------
