@@ -20,7 +20,7 @@ func init() {
 }
 
 func Example_list() {
-	cmd := exec.Command("./simplecache", "list", "../../testcache")
+	cmd := exec.Command("./simplecache", "list", "../../testdata")
 
 	output := new(bytes.Buffer)
 	cmd.Stdout = output
@@ -57,7 +57,7 @@ func Example_list() {
 }
 
 func Example_header() {
-	cmd := exec.Command("./simplecache", "header", "-hash", "bb9d1cda868d278c", "../../testcache")
+	cmd := exec.Command("./simplecache", "header", "-hash", "bb9d1cda868d278c", "../../testdata")
 
 	output := new(bytes.Buffer)
 	cmd.Stdout = output
@@ -85,7 +85,7 @@ func Example_header() {
 }
 
 func Example_body() {
-	cmd := exec.Command("./simplecache", "body", "-hash", "bb9d1cda868d278c", "../../testcache")
+	cmd := exec.Command("./simplecache", "body", "-hash", "bb9d1cda868d278c", "../../testdata")
 
 	output := new(bytes.Buffer)
 	cmd.Stdout = output

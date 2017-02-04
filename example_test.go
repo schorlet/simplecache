@@ -10,7 +10,7 @@ import (
 
 // Example gets an entry from the cache and prints to stdout.
 func Example() {
-	cache, err := simplecache.Open("testcache")
+	cache, err := simplecache.Open("testdata")
 	if err != nil {
 		log.Fatal(err)
 	}

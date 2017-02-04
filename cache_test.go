@@ -10,7 +10,7 @@ import (
 )
 
 func TestCrawl(t *testing.T) {
-	cache, err := simplecache.Open("testcache")
+	cache, err := simplecache.Open("testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestEntry(t *testing.T) {
 	url := "https://golang.org/doc/gopher/pkg.png"
 	hash := simplecache.EntryHash(url)
 
-	entry, err := simplecache.OpenEntry(hash, "testcache")
+	entry, err := simplecache.OpenEntry(hash, "testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
