@@ -49,7 +49,7 @@ func main() {
 
 		for _, url := range cache.URLs() {
 			hash := simplecache.EntryHash(url)
-			fmt.Printf("%016x %s\n", hash, url)
+			fmt.Printf("%016x\t%s\n", hash, url)
 		}
 
 	} else if cmd == "header" {
