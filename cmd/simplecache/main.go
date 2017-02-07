@@ -82,7 +82,7 @@ func parseArgs(cmd, url, hash, cachedir *string) {
 
 	err := flags.Parse(os.Args[2:])
 	if err != nil {
-		log.Fatal("error:", err)
+		log.Fatal(err)
 	}
 
 	if *cmd != "list" && flags.NFlag() != 1 {

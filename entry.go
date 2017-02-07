@@ -15,7 +15,7 @@ import (
 )
 
 // ErrNotFound is returned when an entry does not exist.
-var ErrNotFound = errors.New("entry not found")
+var ErrNotFound = errors.New("simplecache: entry not found")
 
 // Entry represents an entry as stored in the cache.
 //
@@ -106,10 +106,12 @@ func (e *Entry) readHeader(file *os.File) error {
 	}
 
 	if header.Magic != initialMagicNumber {
-		return errors.New("entry: bad magic number")
+		return fmt.Errorf("entry: bad magic number:%x, want:%x",
+			header.Magic, initialMagicNumber)
 	}
 	if header.Version != entryVersion {
-		return errors.New("entry: bad version")
+		return fmt.Errorf("entry: bad version:%d, want:%d",
+			header.Version, entryVersion)
 	}
 
 	// keyLen
@@ -121,8 +123,10 @@ func (e *Entry) readHeader(file *os.File) error {
 		return err
 	}
 
-	if header.KeyHash != superFastHash(key) {
-		return errors.New("entry: bad key hash")
+	sfh := superFastHash(key)
+	if header.KeyHash != sfh {
+		return fmt.Errorf("entry: bad key hash:%x, want:%x",
+			header.KeyHash, sfh)
 	}
 
 	// URL
@@ -145,7 +149,8 @@ func (e *Entry) readStream0(file *os.File) error {
 	}
 
 	if stream0EOF.Magic != finalMagicNumber {
-		return errors.New("stream0: bad magic number")
+		return fmt.Errorf("stream0: bad magic number:%x, want:%x",
+			stream0EOF.Magic, finalMagicNumber)
 	}
 
 	// dataSize0
@@ -167,8 +172,9 @@ func (e *Entry) readStream0(file *os.File) error {
 		}
 
 		actualCRC := crc32.ChecksumIEEE(stream0)
-		if actualCRC != stream0EOF.CRC {
-			return errors.New("stream0: bad CRC")
+		if stream0EOF.CRC != actualCRC {
+			return fmt.Errorf("stream0: bad CRC:%x, want:%x",
+				stream0EOF.CRC, actualCRC)
 		}
 	}
 
@@ -182,8 +188,9 @@ func (e *Entry) readStream0(file *os.File) error {
 		}
 
 		actualSum256 := sha256.Sum256([]byte(e.URL))
-		if actualSum256 != expectedSum256 {
-			return errors.New("stream0: bad Sum256")
+		if expectedSum256 != actualSum256 {
+			return fmt.Errorf("stream0: bad Sum256:%x, want:%x",
+				expectedSum256, actualSum256)
 		}
 	}
 
@@ -204,7 +211,8 @@ func (e *Entry) readStream1(file *os.File) error {
 	}
 
 	if stream1EOF.Magic != finalMagicNumber {
-		return errors.New("stream1: bad magic number")
+		return fmt.Errorf("stream1: bad magic number:%x, want:%x",
+			stream1EOF.Magic, finalMagicNumber)
 	}
 
 	// dataSize1
@@ -222,8 +230,9 @@ func (e *Entry) readStream1(file *os.File) error {
 		}
 
 		actualCRC := crc32.ChecksumIEEE(stream1)
-		if actualCRC != stream1EOF.CRC {
-			return errors.New("stream1: bad CRC")
+		if stream1EOF.CRC != actualCRC {
+			return fmt.Errorf("stream1: bad CRC:%x, want:%x",
+				stream1EOF.CRC, actualCRC)
 		}
 	}
 

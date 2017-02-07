@@ -2,7 +2,6 @@ package simplecache
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -28,12 +27,14 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 	}
 
 	if header.Magic != initialMagicNumber {
-		return nil, errors.New("sparse: bad magic number")
+		return nil, fmt.Errorf("sparse: bad magic number:%x, want:%x",
+			header.Magic, initialMagicNumber)
 	}
 
 	// entryVersion ??
 	if header.Version < indexVersion {
-		return nil, errors.New("sparse: bad version")
+		return nil, fmt.Errorf("sparse: bad version:%d, want:%d",
+			header.Version, indexVersion)
 	}
 
 	offset := entryHeaderSize + int64(header.KeyLen)
@@ -80,7 +81,8 @@ func scan(file *os.File, offset int64) (sparseRanges, error) {
 		}
 
 		if rangeHeader.Magic != sparseMagicNumber {
-			err = errors.New("range: bad magic number")
+			err = fmt.Errorf("range: bad magic number:%x, want:%x",
+				rangeHeader.Magic, sparseMagicNumber)
 			break
 		}
 
@@ -138,8 +140,9 @@ func (sr *sparseReader) fill() error {
 	}
 
 	actualCRC := crc32.ChecksumIEEE(sr.stream)
-	if actualCRC != rng.CRC {
-		return errors.New("range: bad CRC")
+	if rng.CRC != actualCRC {
+		return fmt.Errorf("range: bad CRC:%x, want:%x",
+			rng.CRC, actualCRC)
 	}
 
 	sr.r, sr.w = 0, rng.Len

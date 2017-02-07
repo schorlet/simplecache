@@ -2,7 +2,6 @@ package simplecache
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -76,7 +75,7 @@ func checkCache(dir string) error {
 	}
 
 	if !info.IsDir() {
-		return fmt.Errorf("not a directory: %s", dir)
+		return fmt.Errorf("index: not a directory:%q", dir)
 	}
 
 	file, err := os.Open(filepath.Join(dir, "index"))
@@ -92,11 +91,13 @@ func checkCache(dir string) error {
 	}
 
 	if index.Magic != initialMagicNumber {
-		return errors.New("index: bad magic number")
+		return fmt.Errorf("index: bad magic number:%x, want:%x",
+			index.Magic, initialMagicNumber)
 	}
 
 	if index.Version < indexVersion {
-		return errors.New("index: bad version")
+		return fmt.Errorf("index: bad version:%d, want:>=%d",
+			index.Version, indexVersion)
 	}
 
 	return nil
@@ -110,12 +111,13 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 	}
 
 	if index.Magic != indexMagicNumber {
-		return nil, errors.New("the-real-index: bad magic number")
+		return nil, fmt.Errorf("the-real-index: bad magic number:%x, want:%x",
+			index.Magic, indexMagicNumber)
 	}
 	if index.Version < indexVersion {
 		return nil, fmt.Errorf(
-			"the-real-index: bad version, want:>=%d, got:%d",
-			indexVersion, index.Version)
+			"the-real-index: bad version:%d, want:>=%d",
+			index.Version, indexVersion)
 	}
 
 	dir := filepath.Dir
