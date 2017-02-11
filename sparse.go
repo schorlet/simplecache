@@ -27,13 +27,13 @@ func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 	}
 
 	if header.Magic != initialMagicNumber {
-		return nil, fmt.Errorf("sparse: bad magic number:%x, want:%x",
+		return nil, fmt.Errorf("sparse: bad magic number: %x, want: %x",
 			header.Magic, initialMagicNumber)
 	}
 
 	// entryVersion ??
 	if header.Version < indexVersion {
-		return nil, fmt.Errorf("sparse: bad version:%d, want:%d",
+		return nil, fmt.Errorf("sparse: bad version: %d, want: %d",
 			header.Version, indexVersion)
 	}
 
@@ -81,7 +81,7 @@ func scan(file *os.File, offset int64) (sparseRanges, error) {
 		}
 
 		if rangeHeader.Magic != sparseMagicNumber {
-			err = fmt.Errorf("range: bad magic number:%x, want:%x",
+			err = fmt.Errorf("sparse: bad magic number: %x, want: %x",
 				rangeHeader.Magic, sparseMagicNumber)
 			break
 		}
@@ -141,7 +141,7 @@ func (sr *sparseReader) fill() error {
 
 	actualCRC := crc32.ChecksumIEEE(sr.stream)
 	if rng.CRC != actualCRC {
-		return fmt.Errorf("range: bad CRC:%x, want:%x",
+		return fmt.Errorf("sparse: bad CRC: %x, want: %x",
 			rng.CRC, actualCRC)
 	}
 

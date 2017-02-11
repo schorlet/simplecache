@@ -31,7 +31,7 @@ func TestCrawl(t *testing.T) {
 
 	_, err = cache.OpenURL("http://foo.com")
 	if err != simplecache.ErrNotFound {
-		t.Fatalf("got:%v, want:%v", err, simplecache.ErrNotFound)
+		t.Fatalf("got: %v, want: %v", err, simplecache.ErrNotFound)
 	}
 
 	for _, url := range urls {
@@ -41,7 +41,7 @@ func TestCrawl(t *testing.T) {
 		}
 
 		if entry.URL != url {
-			t.Fatalf("bad url:%s, want:%s", entry.URL, url)
+			t.Fatalf("bad url: %s, want: %s", entry.URL, url)
 		}
 
 		header, err := entry.Header()
@@ -50,7 +50,7 @@ func TestCrawl(t *testing.T) {
 		}
 
 		if len(header) == 0 {
-			t.Fatal("got:empty header")
+			t.Fatal("got: empty header")
 		}
 
 		clength := header.Get("Content-Length")
@@ -75,7 +75,7 @@ func TestCrawl(t *testing.T) {
 		}
 
 		if n != nlength {
-			t.Fatalf("bad stream-length:%d, want:%d", n, nlength)
+			t.Fatalf("bad stream-length: %d, want: %d", n, nlength)
 		}
 	}
 }
@@ -90,7 +90,7 @@ func TestEntry(t *testing.T) {
 	}
 
 	if entry.URL != url {
-		t.Fatalf("bad url:%s, want:%s", entry.URL, url)
+		t.Fatalf("bad url: %s, want: %s", entry.URL, url)
 	}
 
 	header, err := entry.Header()
@@ -100,12 +100,12 @@ func TestEntry(t *testing.T) {
 
 	cl := header.Get("Content-Length")
 	if cl != "5409" {
-		t.Fatalf("bad content-length:%s, want:5409", cl)
+		t.Fatalf("bad content-length: %s, want: 5409", cl)
 	}
 
 	ct := header.Get("Content-Type")
 	if ct != "image/png" {
-		t.Fatalf("bad content-type:%s, want:image/png", ct)
+		t.Fatalf("bad content-type: %s, want: image/png", ct)
 	}
 
 	body, err := entry.Body()
@@ -119,7 +119,7 @@ func TestEntry(t *testing.T) {
 	}
 
 	if n != 5409 {
-		t.Fatalf("bad stream length:%d, want:5409", n)
+		t.Fatalf("bad stream length: %d, want: 5409", n)
 	}
 
 	err = body.Close()
