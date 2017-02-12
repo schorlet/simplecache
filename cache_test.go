@@ -30,8 +30,8 @@ func TestCrawl(t *testing.T) {
 	}
 
 	_, err = cache.OpenURL("http://foo.com")
-	if err != simplecache.ErrNotFound {
-		t.Fatalf("got: %v, want: %v", err, simplecache.ErrNotFound)
+	if err == nil {
+		t.Fatalf("got: nil, want: an error")
 	}
 
 	for _, url := range urls {

@@ -13,10 +13,7 @@ import (
 func newSparseReader(hash uint64, dir string) (io.ReadCloser, error) {
 	name := filepath.Join(dir, fmt.Sprintf("%016x_s", hash))
 	file, err := os.Open(name)
-
-	if os.IsNotExist(err) {
-		return nil, ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 

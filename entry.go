@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -13,9 +12,6 @@ import (
 	"os"
 	"path/filepath"
 )
-
-// ErrNotFound is returned when an entry does not exist.
-var ErrNotFound = errors.New("entry not found")
 
 // Entry represents an entry as stored in the cache.
 //
@@ -40,14 +36,10 @@ type Entry struct {
 }
 
 // OpenEntry returns the Entry specified by hash, in the cache at dir.
-// If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
 func OpenEntry(hash uint64, dir string) (*Entry, error) {
 	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
-
-	if os.IsNotExist(err) {
-		return nil, ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -243,10 +235,7 @@ func (e *Entry) readStream1(file *os.File) error {
 func (e Entry) Header() (http.Header, error) {
 	name := filepath.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
-
-	if os.IsNotExist(err) {
-		return nil, ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -301,10 +290,7 @@ func (e Entry) Body() (io.ReadCloser, error) {
 
 	name := filepath.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
-
-	if os.IsNotExist(err) {
-		return nil, ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 

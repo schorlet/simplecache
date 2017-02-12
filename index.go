@@ -44,7 +44,6 @@ func (c *Cache) Hashes() []uint64 {
 }
 
 // OpenURL returns the Entry specified by url.
-// If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
 func (c *Cache) OpenURL(url string) (*Entry, error) {
 	hash := EntryHash(url)
 	return OpenEntry(hash, c.dir)
