@@ -57,12 +57,13 @@ type indexEntry struct {
 	Size     uint64
 }
 
-// EntryHash returns the hash of the specified key.
-func EntryHash(key string) uint64 {
+// Hash returns the hash of the specified url.
+// The returned value may be used by OpenEntry.
+func Hash(url string) uint64 {
 	hash := sha1.New()
 
 	hash.Reset()
-	_, err := hash.Write([]byte(key))
+	_, err := hash.Write([]byte(url))
 	if err != nil {
 		return 0
 	}

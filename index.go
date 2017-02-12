@@ -36,7 +36,7 @@ func Open(dir string) (*Cache, error) {
 	return readIndex(file)
 }
 
-// Hashes returns all Entries key hash.
+// Hashes returns all Entry hashes.
 func (c *Cache) Hashes() []uint64 {
 	hashes := make([]uint64, len(c.hashes))
 	copy(hashes, c.hashes)
@@ -45,7 +45,7 @@ func (c *Cache) Hashes() []uint64 {
 
 // OpenURL returns the Entry specified by url.
 func (c *Cache) OpenURL(url string) (*Entry, error) {
-	hash := EntryHash(url)
+	hash := Hash(url)
 	return OpenEntry(hash, c.dir)
 }
 

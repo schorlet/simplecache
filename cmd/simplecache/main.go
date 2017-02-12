@@ -43,7 +43,7 @@ func main() {
 		}
 
 		for _, url := range cache.URLs() {
-			hash := simplecache.EntryHash(url)
+			hash := simplecache.Hash(url)
 			fmt.Printf("%016x\t%s\n", hash, url)
 		}
 
@@ -98,7 +98,7 @@ func openEntry(url, hash, dir string) *simplecache.Entry {
 	if hash != "" {
 		id, err = strconv.ParseUint(hash, 16, 64)
 	} else {
-		id = simplecache.EntryHash(url)
+		id = simplecache.Hash(url)
 	}
 
 	if err != nil {

@@ -86,7 +86,7 @@ func openURL(t *testing.T, cache *simplecache.Cache, url string) {
 
 func TestEntry(t *testing.T) {
 	url := "https://golang.org/doc/gopher/pkg.png"
-	hash := simplecache.EntryHash(url)
+	hash := simplecache.Hash(url)
 
 	entry, err := simplecache.OpenEntry(hash, "testdata")
 	if err != nil {
