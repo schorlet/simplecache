@@ -36,17 +36,16 @@ func Open(dir string) (*Cache, error) {
 	return readIndex(file)
 }
 
-// Hashes returns all Entry hashes.
-func (c *Cache) Hashes() []uint64 {
-	hashes := make([]uint64, len(c.hashes))
-	copy(hashes, c.hashes)
-	return hashes
-}
-
 // OpenURL returns the Entry specified by url.
 func (c *Cache) OpenURL(url string) (*Entry, error) {
 	hash := Hash(url)
 	return OpenEntry(hash, c.dir)
+}
+
+// URLs returns all the URLs currently stored.
+func (c *Cache) URLs() []string {
+	c.once.Do(c.readURLs)
+	return c.urls
 }
 
 func (c *Cache) readURLs() {
@@ -60,12 +59,6 @@ func (c *Cache) readURLs() {
 		}
 		c.urls = append(c.urls, url)
 	}
-}
-
-// URLs returns all the URLs currently stored.
-func (c *Cache) URLs() []string {
-	c.once.Do(c.readURLs)
-	return c.urls
 }
 
 func checkCache(dir string) error {

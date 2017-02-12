@@ -15,23 +15,14 @@ func TestCrawl(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hashes := cache.Hashes()
-	if len(hashes) == 0 {
-		t.Fatal("empty cache hashes")
+	_, err = cache.OpenURL("http://foo.com")
+	if err == nil {
+		t.Fatalf("got: nil, want: an error")
 	}
 
 	urls := cache.URLs()
 	if len(urls) == 0 {
 		t.Fatal("empty cache urls")
-	}
-
-	if len(hashes) != len(urls) {
-		t.Fatal("mismatch len between hashes and urls")
-	}
-
-	_, err = cache.OpenURL("http://foo.com")
-	if err == nil {
-		t.Fatalf("got: nil, want: an error")
 	}
 
 	for _, url := range urls {
