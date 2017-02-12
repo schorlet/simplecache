@@ -98,7 +98,7 @@ func readURL(hash uint64, dir string) (string, error) {
 	return entry.URL, nil
 }
 
-func (e *Entry) readHeader(file *os.File) error {
+func (e *Entry) readHeader(file io.Reader) error {
 	header := new(entryHeader)
 	err := binary.Read(file, binary.LittleEndian, header)
 	if err != nil {
@@ -138,7 +138,7 @@ func (e *Entry) readHeader(file *os.File) error {
 func (e *Entry) readStream0(file *os.File) error {
 	stream0EOF := new(entryEOF)
 
-	_, err := file.Seek(-1*entryEOFSize, os.SEEK_END)
+	_, err := file.Seek(-1*entryEOFSize, io.SeekEnd)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (e *Entry) readStream0(file *os.File) error {
 func (e *Entry) readStream1(file *os.File) error {
 	stream1EOF := new(entryEOF)
 
-	_, err := file.Seek(e.offset0-entryEOFSize, os.SEEK_SET)
+	_, err := file.Seek(e.offset0-entryEOFSize, io.SeekStart)
 	if err != nil {
 		return err
 	}

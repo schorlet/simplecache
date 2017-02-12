@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"log"
-	"time"
 )
 
 const (
@@ -132,6 +131,7 @@ func (ranges sparseRanges) Less(i, j int) bool {
 
 // unix epoch - win epoch (µsec)
 // (1970-01-01 - 1601-01-01)
+/*
 const delta = int64(11644473600000000)
 
 func winTime(µsec int64) time.Time {
@@ -140,6 +140,7 @@ func winTime(µsec int64) time.Time {
 func fromTime(t time.Time) int64 {
 	return t.UnixNano()/1e3 + delta
 }
+*/
 
 func init() {
 	index := new(indexHeader)

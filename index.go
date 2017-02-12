@@ -3,6 +3,7 @@ package simplecache
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -128,7 +129,7 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 
 	if index.Version > indexVersion {
 		var reasonSize int64 = 4 // last write reason
-		_, err = file.Seek(reasonSize, os.SEEK_CUR)
+		_, err = file.Seek(reasonSize, io.SeekCurrent)
 		if err != nil {
 			return nil, err
 		}

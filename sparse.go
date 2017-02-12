@@ -64,12 +64,12 @@ type sparseReader struct {
 	r, w   int64
 }
 
-func scan(file *os.File, offset int64) (sparseRanges, error) {
+func scan(file io.ReadSeeker, offset int64) (sparseRanges, error) {
 	var ranges sparseRanges
 	var err error
 
 	for {
-		_, err = file.Seek(offset, os.SEEK_SET)
+		_, err = file.Seek(offset, io.SeekStart)
 		if err != nil {
 			break
 		}
