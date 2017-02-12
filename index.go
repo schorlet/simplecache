@@ -10,8 +10,8 @@ import (
 	"sync"
 )
 
-// SimpleCache gives read-access to the simple cache.
-type SimpleCache struct {
+// Cache gives read-access to the simple cache.
+type Cache struct {
 	dir    string // cache directory
 	once   sync.Once
 	hashes []uint64 // []entry.hash
@@ -19,7 +19,7 @@ type SimpleCache struct {
 }
 
 // Open opens the cache at dir.
-func Open(dir string) (*SimpleCache, error) {
+func Open(dir string) (*Cache, error) {
 	err := checkCache(dir)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func Open(dir string) (*SimpleCache, error) {
 }
 
 // Hashes returns all Entries key hash.
-func (c *SimpleCache) Hashes() []uint64 {
+func (c *Cache) Hashes() []uint64 {
 	hashes := make([]uint64, len(c.hashes))
 	copy(hashes, c.hashes)
 	return hashes
@@ -45,12 +45,12 @@ func (c *SimpleCache) Hashes() []uint64 {
 
 // OpenURL returns the Entry specified by url.
 // If the Entry does not exist, the error is ErrNotFound. Other errors may be returned for I/O problems.
-func (c *SimpleCache) OpenURL(url string) (*Entry, error) {
+func (c *Cache) OpenURL(url string) (*Entry, error) {
 	hash := EntryHash(url)
 	return OpenEntry(hash, c.dir)
 }
 
-func (c *SimpleCache) readURLs() {
+func (c *Cache) readURLs() {
 	c.urls = make([]string, 0, len(c.hashes))
 
 	for _, hash := range c.hashes {
@@ -64,7 +64,7 @@ func (c *SimpleCache) readURLs() {
 }
 
 // URLs returns all the URLs currently stored.
-func (c *SimpleCache) URLs() []string {
+func (c *Cache) URLs() []string {
 	c.once.Do(c.readURLs)
 	return c.urls
 }
@@ -104,7 +104,7 @@ func checkCache(dir string) error {
 	return nil
 }
 
-func readIndex(file *os.File) (*SimpleCache, error) {
+func readIndex(file *os.File) (*Cache, error) {
 	index := new(indexHeader)
 	err := binary.Read(file, binary.LittleEndian, index)
 	if err != nil {
@@ -122,7 +122,7 @@ func readIndex(file *os.File) (*SimpleCache, error) {
 
 	dir := filepath.Dir
 
-	cache := &SimpleCache{
+	cache := &Cache{
 		dir:    dir(dir(file.Name())),
 		hashes: make([]uint64, index.EntryCount),
 	}

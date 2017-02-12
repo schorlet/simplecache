@@ -35,48 +35,52 @@ func TestCrawl(t *testing.T) {
 	}
 
 	for _, url := range urls {
-		entry, err := cache.OpenURL(url)
-		if err != nil {
-			t.Fatal(err)
-		}
+		openURL(t, cache, url)
+	}
+}
 
-		if entry.URL != url {
-			t.Fatalf("bad url: %s, want: %s", entry.URL, url)
-		}
+func openURL(t *testing.T, cache *simplecache.Cache, url string) {
+	entry, err := cache.OpenURL(url)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		header, err := entry.Header()
-		if err != nil {
-			t.Fatal(err)
-		}
+	if entry.URL != url {
+		t.Fatalf("bad url: %s, want: %s", entry.URL, url)
+	}
 
-		if len(header) == 0 {
-			t.Fatal("got: empty header")
-		}
+	header, err := entry.Header()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		clength := header.Get("Content-Length")
-		nlength, err := strconv.ParseInt(clength, 10, 64)
-		if err != nil {
-			t.Fatal(err)
-		}
+	if len(header) == 0 {
+		t.Fatal("got: empty header")
+	}
 
-		body, err := entry.Body()
-		if err != nil {
-			t.Fatal(err)
-		}
+	clength := header.Get("Content-Length")
+	nlength, err := strconv.ParseInt(clength, 10, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		n, err := io.Copy(ioutil.Discard, body)
-		if err != nil {
-			t.Fatal(err)
-		}
+	body, err := entry.Body()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		err = body.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
+	n, err := io.Copy(ioutil.Discard, body)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if n != nlength {
-			t.Fatalf("bad stream-length: %d, want: %d", n, nlength)
-		}
+	err = body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != nlength {
+		t.Fatalf("bad stream-length: %d, want: %d", n, nlength)
 	}
 }
 
