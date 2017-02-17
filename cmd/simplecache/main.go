@@ -1,4 +1,18 @@
 // Command simplecache helps reading Chromium simple cache on command line.
+//
+//  Usage:
+//	simplecache command [flag] CACHEDIR
+//
+//	The commands are:
+//		list        list entries
+//		header      print entry header
+//		body        print entry body
+//
+//	The flags are:
+//		-url string        entry url
+//		-hash string       entry hash
+//
+//	CACHEDIR is the path to the chromium cache directory.
 package main
 
 import (
@@ -12,10 +26,9 @@ import (
 	"github.com/schorlet/simplecache"
 )
 
-const usage = `simplecache is a tool for reading Chromium simple cache v6.
+const usage = `simplecache is a tool for reading Chromium simple cache v6 or v7.
 
 Usage:
-
     simplecache command [flag] CACHEDIR
 
 The commands are:
