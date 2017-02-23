@@ -233,7 +233,7 @@ func (e *Entry) readStream1(file *os.File) error {
 }
 
 // Header returns the HTTP header.
-func (e Entry) Header() (http.Header, error) {
+func (e *Entry) Header() (http.Header, error) {
 	name := filepath.Join(e.dir, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
@@ -284,7 +284,7 @@ func (e Entry) Header() (http.Header, error) {
 }
 
 // Body returns the HTTP body.
-func (e Entry) Body() (io.ReadCloser, error) {
+func (e *Entry) Body() (io.ReadCloser, error) {
 	if e.dataSize1 == 0 {
 		return newSparseReader(e.hash, e.dir)
 	}
