@@ -115,10 +115,8 @@ func readIndex(file *os.File) (*Cache, error) {
 			index.Version, indexVersion)
 	}
 
-	dir := filepath.Dir
-
 	cache := &Cache{
-		dir:    dir(dir(file.Name())),
+		dir:    filepath.Dir(filepath.Dir(file.Name())),
 		hashes: make([]uint64, index.EntryCount),
 	}
 
