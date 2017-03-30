@@ -52,7 +52,7 @@ func main() {
 	if cmd == "list" {
 		cache, err := simplecache.Open(cachedir)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Unable to open cache:%v", err)
 		}
 
 		for _, url := range cache.URLs() {
@@ -69,7 +69,7 @@ func main() {
 		printBody(entry)
 
 	} else {
-		log.Fatalf("unknown command: %s", cmd)
+		log.Fatalf("Unknown command:%s", cmd)
 	}
 }
 
@@ -90,7 +90,7 @@ func parseArgs(cmd, url, hash, cachedir *string) {
 
 	err := flags.Parse(os.Args[2:])
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to parse args:%v", err)
 	}
 
 	if *cmd != "list" && flags.NFlag() != 1 {
@@ -115,12 +115,12 @@ func openEntry(url, hash, dir string) *simplecache.Entry {
 	}
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to parse hash:%v", err)
 	}
 
 	entry, err := simplecache.OpenEntry(id, dir)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to open entry:%v", err)
 	}
 
 	return entry
@@ -129,7 +129,7 @@ func openEntry(url, hash, dir string) *simplecache.Entry {
 func printHeader(entry *simplecache.Entry) {
 	header, err := entry.Header()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to read header:%v", err)
 	}
 	for key := range header {
 		fmt.Printf("%s: %s\n", key, header.Get(key))
@@ -139,17 +139,17 @@ func printHeader(entry *simplecache.Entry) {
 func printBody(entry *simplecache.Entry) {
 	body, err := entry.Body()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to read body:%v", err)
 	}
 	defer body.Close()
 
 	_, err = io.Copy(os.Stdout, body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to copy the body to stdout:%v", err)
 	}
 
 	err = body.Close()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to close body:%v", err)
 	}
 }
