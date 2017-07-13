@@ -10,7 +10,11 @@ import (
 	"sync"
 )
 
-// Cache gives read-access to the simple cache.
+// Cache gives read-access to the chromium cache.
+//
+// On linux, valid cache paths are:
+//  ~/.cache/chromium/Default/Cache
+//  ~/.cache/chromium/Default/Media Cache
 type Cache struct {
 	dir    string // cache directory
 	once   sync.Once
@@ -19,10 +23,6 @@ type Cache struct {
 }
 
 // Open opens the simple cache at dir.
-//
-// On linux, valid cache paths are:
-//  ~/.cache/chromium/Default/Cache
-//  ~/.cache/chromium/Default/Media Cache
 func Open(dir string) (*Cache, error) {
 	err := checkCache(dir)
 	if err != nil {
@@ -80,8 +80,8 @@ func checkCache(dir string) error {
 	}
 	defer close(file)
 
-	index := new(fakeIndex)
-	err = binary.Read(file, binary.LittleEndian, index)
+	var index fakeIndex
+	err = binary.Read(file, binary.LittleEndian, &index)
 	if err != nil {
 		return fmt.Errorf("unable to read fakeIndex: %v", err)
 	}
@@ -115,7 +115,7 @@ func readIndex(file *os.File) (*Cache, error) {
 			index.Version, indexVersion)
 	}
 
-	cache := &Cache{
+	cache := Cache{
 		dir:    filepath.Dir(filepath.Dir(file.Name())),
 		hashes: make([]uint64, index.EntryCount),
 	}
@@ -128,14 +128,14 @@ func readIndex(file *os.File) (*Cache, error) {
 		}
 	}
 
-	entry := new(indexEntry)
+	var entry indexEntry
 	for i := uint64(0); i < index.EntryCount; i++ {
-		err = binary.Read(file, binary.LittleEndian, entry)
+		err = binary.Read(file, binary.LittleEndian, &entry)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read entry: %v", err)
 		}
 		cache.hashes[i] = entry.Hash
 	}
 
-	return cache, nil
+	return &cache, nil
 }

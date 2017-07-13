@@ -21,6 +21,7 @@ func Example() {
 	}
 	fmt.Println(entry.URL)
 
+	// header
 	header, err := entry.Header()
 	if err != nil {
 		log.Fatal(err)
@@ -29,20 +30,16 @@ func Example() {
 		fmt.Printf("%s: %s\n", key, header.Get(key))
 	}
 
+	// body
 	body, err := entry.Body()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	config, err := png.DecodeConfig(body)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err = body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
+	defer body.Close()
 
 	fmt.Printf("PNG image data, %d x %d\n", config.Width, config.Height)
 

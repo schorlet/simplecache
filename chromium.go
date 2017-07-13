@@ -57,7 +57,7 @@ type indexEntry struct {
 	Size     uint64
 }
 
-// Hash returns the hash of the specified url.
+// Hash returns the first 64 bits of the SHA1 checksum of s.
 // The returned value may be used by OpenEntry.
 func Hash(url string) uint64 {
 	hash := sha1.New()
@@ -74,6 +74,15 @@ func Hash(url string) uint64 {
 	// uses the top 64 bits
 	return binary.LittleEndian.Uint64(sum[:8])
 }
+
+// An entry consists of:
+//  - an entryHeader.
+//  - the key.
+//  - the data from stream 1.
+//  - an entryEOF record for stream 1.
+//  - the data from stream 0.
+//  - (optionally) the SHA256 of the key.
+//  - an entryEOF record for stream 0.
 
 // entryHeader is the header of an entry file.
 type entryHeader struct {
@@ -144,27 +153,27 @@ func fromTime(t time.Time) int64 {
 */
 
 func init() {
-	index := new(indexHeader)
+	var index indexHeader
 	if n := binary.Size(index); int64(n) != indexHeaderSize {
 		log.Fatalf("IndexHeader size error: %d, want: %d", n, indexHeaderSize)
 	}
 
-	entry := new(indexEntry)
+	var entry indexEntry
 	if n := binary.Size(entry); int64(n) != indexEntrySize {
 		log.Fatalf("IndexEntry size error: %d, want: %d", n, indexEntrySize)
 	}
 
-	entryHead := new(entryHeader)
+	var entryHead entryHeader
 	if n := binary.Size(entryHead); int64(n) != entryHeaderSize {
 		log.Fatalf("EntryHeader size error: %d, want: %d", n, entryHeaderSize)
 	}
 
-	entryEnd := new(entryEOF)
+	var entryEnd entryEOF
 	if n := binary.Size(entryEnd); int64(n) != entryEOFSize {
 		log.Fatalf("EntryEOF size error: %d, want: %d", n, entryEOFSize)
 	}
 
-	rangeHeader := new(sparseRangeHeader)
+	var rangeHeader sparseRangeHeader
 	if n := binary.Size(rangeHeader); int64(n) != sparseRangeHeaderSize {
 		log.Fatalf("SparseHeader size error: %d, want: %d", n, sparseRangeHeaderSize)
 	}

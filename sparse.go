@@ -17,8 +17,8 @@ func newSparseReader(hash uint64, cacheDir string) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
 	}
 
-	header := new(entryHeader)
-	err = binary.Read(file, binary.LittleEndian, header)
+	var header entryHeader
+	err = binary.Read(file, binary.LittleEndian, &header)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read entry header: %v", err)
 	}
@@ -71,8 +71,8 @@ func scan(file io.ReadSeeker, offset int64) (sparseRanges, error) {
 			break
 		}
 
-		rangeHeader := new(sparseRangeHeader)
-		err = binary.Read(file, binary.LittleEndian, rangeHeader)
+		var rangeHeader sparseRangeHeader
+		err = binary.Read(file, binary.LittleEndian, &rangeHeader)
 		if err != nil {
 			break
 		}

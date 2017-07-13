@@ -22,7 +22,7 @@ func TestCrawl(t *testing.T) {
 
 	urls := cache.URLs()
 	if len(urls) == 0 {
-		t.Fatal("empty cache urls")
+		t.Fatal("empty cache")
 	}
 
 	for _, url := range urls {

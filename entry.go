@@ -15,15 +15,6 @@ import (
 )
 
 // Entry represents an entry as stored in the cache.
-//
-// An entry containing stream 0 and stream 1 in the cache consists of:
-//	- a SimpleFileHeader.
-//	- the key.
-//	- the data from stream 1.
-//	- a SimpleFileEOF record for stream 1.
-//	- the data from stream 0.
-//	- (optionally) the SHA256 of the key.
-//	- a SimpleFileEOF record for stream 0.
 type Entry struct {
 	URL       string
 	hash      uint64
@@ -36,14 +27,13 @@ type Entry struct {
 	dataSize0 int64
 }
 
-// OpenEntry returns the Entry specified by hash, in the cache at cacheDir.
-func OpenEntry(hash uint64, cacheDir string) (*Entry, error) {
-	name := filepath.Join(cacheDir, fmt.Sprintf("%016x_0", hash))
+// OpenEntry returns the Entry specified by hash, in the cache at dir.
+func OpenEntry(hash uint64, dir string) (*Entry, error) {
+	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
 	}
-
 	defer close(file)
 
 	stat, err := file.Stat()
@@ -51,39 +41,34 @@ func OpenEntry(hash uint64, cacheDir string) (*Entry, error) {
 		return nil, fmt.Errorf("unable to stat entry: %v", err)
 	}
 
-	entry := &Entry{
+	entry := Entry{
 		hash:     hash,
-		cacheDir: cacheDir,
+		cacheDir: dir,
 		fileSize: stat.Size(),
 	}
 
-	err = entry.readHeader(file)
-	if err != nil {
+	if err = entry.readHeader(file); err != nil {
 		return nil, fmt.Errorf("unable to read entry header: %v", err)
 	}
-
-	err = entry.readStream0(file)
-	if err != nil {
+	if err = entry.readStream0(file); err != nil {
 		return nil, fmt.Errorf("unable to read entry stream0: %v", err)
 	}
-
-	err = entry.readStream1(file)
-	if err != nil {
+	if err = entry.readStream1(file); err != nil {
 		return nil, fmt.Errorf("unable to read entry stream1: %v", err)
 	}
 
-	return entry, nil
+	return &entry, nil
 }
 
-func readURL(hash uint64, cacheDir string) (string, error) {
-	name := filepath.Join(cacheDir, fmt.Sprintf("%016x_0", hash))
+func readURL(hash uint64, dir string) (string, error) {
+	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return "", fmt.Errorf("unable to open entry: %v", err)
 	}
 	defer close(file)
 
-	entry := new(Entry)
+	var entry Entry
 	err = entry.readHeader(file)
 	if err != nil {
 		return "", fmt.Errorf("unable to read entry header: %v", err)
@@ -92,8 +77,8 @@ func readURL(hash uint64, cacheDir string) (string, error) {
 }
 
 func (e *Entry) readHeader(file io.Reader) error {
-	header := new(entryHeader)
-	err := binary.Read(file, binary.LittleEndian, header)
+	var header entryHeader
+	err := binary.Read(file, binary.LittleEndian, &header)
 	if err != nil {
 		return fmt.Errorf("unable to read header: %v", err)
 	}
@@ -129,14 +114,14 @@ func (e *Entry) readHeader(file io.Reader) error {
 }
 
 func (e *Entry) readStream0(file *os.File) error {
-	stream0EOF := new(entryEOF)
+	var stream0EOF entryEOF
 
 	_, err := file.Seek(-1*entryEOFSize, io.SeekEnd)
 	if err != nil {
 		return fmt.Errorf("unable to seek stream0: %v", err)
 	}
 
-	err = binary.Read(file, binary.LittleEndian, stream0EOF)
+	err = binary.Read(file, binary.LittleEndian, &stream0EOF)
 	if err != nil {
 		return fmt.Errorf("unable to read stream0EOF: %v", err)
 	}
@@ -191,14 +176,14 @@ func (e *Entry) readStream0(file *os.File) error {
 }
 
 func (e *Entry) readStream1(file *os.File) error {
-	stream1EOF := new(entryEOF)
+	var stream1EOF entryEOF
 
 	_, err := file.Seek(e.offset0-entryEOFSize, io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("unable to seek stream1: %v", err)
 	}
 
-	err = binary.Read(file, binary.LittleEndian, stream1EOF)
+	err = binary.Read(file, binary.LittleEndian, &stream1EOF)
 	if err != nil {
 		return fmt.Errorf("unable to read stream1EOF: %v", err)
 	}
@@ -239,7 +224,6 @@ func (e *Entry) Header() (http.Header, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
 	}
-
 	defer close(file)
 
 	stream0 := make([]byte, e.dataSize0)
@@ -294,7 +278,6 @@ func (e *Entry) Body() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
 	}
-
 	defer close(file)
 
 	stream1 := make([]byte, e.dataSize1)
@@ -308,8 +291,7 @@ func (e *Entry) Body() (io.ReadCloser, error) {
 }
 
 func close(f *os.File) {
-	err := f.Close()
-	if err != nil {
+	if err := f.Close(); err != nil {
 		log.Printf("Error closing file %q: %v\n", f.Name(), err)
 	}
 }
