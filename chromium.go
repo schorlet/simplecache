@@ -146,26 +146,26 @@ func fromTime(t time.Time) int64 {
 func init() {
 	index := new(indexHeader)
 	if n := binary.Size(index); int64(n) != indexHeaderSize {
-		log.Fatalf("IndexHeader size error:%d, want:%d", n, indexHeaderSize)
+		log.Fatalf("IndexHeader size error: %d, want: %d", n, indexHeaderSize)
 	}
 
 	entry := new(indexEntry)
 	if n := binary.Size(entry); int64(n) != indexEntrySize {
-		log.Fatalf("IndexEntry size error:%d, want:%d", n, indexEntrySize)
+		log.Fatalf("IndexEntry size error: %d, want: %d", n, indexEntrySize)
 	}
 
 	entryHead := new(entryHeader)
 	if n := binary.Size(entryHead); int64(n) != entryHeaderSize {
-		log.Fatalf("EntryHeader size error:%d, want:%d", n, entryHeaderSize)
+		log.Fatalf("EntryHeader size error: %d, want: %d", n, entryHeaderSize)
 	}
 
 	entryEnd := new(entryEOF)
 	if n := binary.Size(entryEnd); int64(n) != entryEOFSize {
-		log.Fatalf("EntryEOF size error:%d, want:%d", n, entryEOFSize)
+		log.Fatalf("EntryEOF size error: %d, want: %d", n, entryEOFSize)
 	}
 
 	rangeHeader := new(sparseRangeHeader)
 	if n := binary.Size(rangeHeader); int64(n) != sparseRangeHeaderSize {
-		log.Fatalf("SparseHeader size error:%d, want:%d", n, sparseRangeHeaderSize)
+		log.Fatalf("SparseHeader size error: %d, want: %d", n, sparseRangeHeaderSize)
 	}
 }

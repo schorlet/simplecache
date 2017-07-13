@@ -14,30 +14,30 @@ func newSparseReader(hash uint64, cacheDir string) (io.ReadCloser, error) {
 	name := filepath.Join(cacheDir, fmt.Sprintf("%016x_s", hash))
 	file, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open entry:%v", err)
+		return nil, fmt.Errorf("unable to open entry: %v", err)
 	}
 
 	header := new(entryHeader)
 	err = binary.Read(file, binary.LittleEndian, header)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read entry header:%v", err)
+		return nil, fmt.Errorf("unable to read entry header: %v", err)
 	}
 
 	if header.Magic != initialMagicNumber {
-		return nil, fmt.Errorf("bad magic number:%x, want:%x",
+		return nil, fmt.Errorf("bad magic number: %x, want: %x",
 			header.Magic, initialMagicNumber)
 	}
 
 	// entryVersion ??
 	if header.Version < indexVersion {
-		return nil, fmt.Errorf("bad version:%d, want:%d",
+		return nil, fmt.Errorf("bad version: %d, want: %d",
 			header.Version, indexVersion)
 	}
 
 	offset := entryHeaderSize + int64(header.KeyLen)
 	ranges, err := scan(file, offset)
 	if err != nil {
-		return nil, fmt.Errorf("unable to scan entry:%v", err)
+		return nil, fmt.Errorf("unable to scan entry: %v", err)
 	}
 
 	return &sparseReader{
@@ -78,7 +78,7 @@ func scan(file io.ReadSeeker, offset int64) (sparseRanges, error) {
 		}
 
 		if rangeHeader.Magic != sparseMagicNumber {
-			err = fmt.Errorf("bad magic number:%x, want:%x",
+			err = fmt.Errorf("bad magic number: %x, want: %x",
 				rangeHeader.Magic, sparseMagicNumber)
 			break
 		}
@@ -95,7 +95,7 @@ func scan(file io.ReadSeeker, offset int64) (sparseRanges, error) {
 	}
 
 	if err != io.EOF {
-		return nil, fmt.Errorf("unable to scan entry:%v", err)
+		return nil, fmt.Errorf("unable to scan entry: %v", err)
 	}
 
 	sort.Sort(ranges)
@@ -133,12 +133,12 @@ func (sr *sparseReader) fill() error {
 
 	_, err := sr.file.ReadAt(sr.stream, rng.FileOffset)
 	if err != nil {
-		return fmt.Errorf("unable to read sparse:%v", err)
+		return fmt.Errorf("unable to read sparse: %v", err)
 	}
 
 	actualCRC := crc32.ChecksumIEEE(sr.stream)
 	if rng.CRC != actualCRC {
-		return fmt.Errorf("bad CRC:%x, want:%x",
+		return fmt.Errorf("bad CRC: %x, want: %x",
 			rng.CRC, actualCRC)
 	}
 
