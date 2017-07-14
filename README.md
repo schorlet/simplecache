@@ -11,14 +11,14 @@ See the [example_test.go](example_test.go) for a basic example.
 The simplecache command
 -----------------------
 
-Look at webm videos. You could be surprised:
+Watch webm videos from the cache:
 
 ```sh
 $ go install ./cmd/simplecache
 $ CHROME_CACHE=~/.cache/chromium/Default/Media\ Cache/
-$ $GOPATH/bin/simplecache list "$CHROME_CACHE" | grep 'webm$' | \
-while read HASH URL; do
-	$GOPATH/bin/simplecache body -hash $HASH "$CHROME_CACHE" | vlc -q --play-and-exit -
+$ simplecache list "$CHROME_CACHE" | grep 'webm$' | \
+while read URL; do
+	$GOPATH/bin/simplecache body $URL "$CHROME_CACHE" | vlc -q --play-and-exit -
 done
 ```
 

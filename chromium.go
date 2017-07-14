@@ -57,13 +57,12 @@ type indexEntry struct {
 	Size     uint64
 }
 
-// Hash returns the first 64 bits of the SHA1 checksum of s.
-// The returned value may be used by OpenEntry.
-func Hash(url string) uint64 {
+// sha1sum returns the first 64 bits of the SHA1 checksum of s.
+func sha1sum(s string) uint64 {
 	hash := sha1.New()
 
 	hash.Reset()
-	_, err := hash.Write([]byte(url))
+	_, err := hash.Write([]byte(s))
 	if err != nil {
 		return 0
 	}

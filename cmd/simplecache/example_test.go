@@ -30,34 +30,34 @@ func Example_list() {
 	}
 
 	lines := read(&output)
-	for _, line := range lines {
-		fmt.Println(line)
+	for i := range lines {
+		fmt.Println(lines[i])
 	}
 
 	// Output:
-	// 329f9c2d34eb0523	https://golang.org/pkg/os/
-	// 36d2a4716c77194d	https://golang.org/lib/godoc/jquery.treeview.js
-	// 4d522977a9d92736	https://golang.org/pkg/
-	// 4e5b177c943d8ee0	https://golang.org/pkg/io/ioutil/
-	// 51d54ab35ce343ea	https://golang.org/lib/godoc/godocs.js
-	// 55782b6621f25a58	https://golang.org/pkg/io/
-	// 6a5a092a607295ea	https://golang.org/pkg/bufio/
-	// 8e8dcd288a0d7920	https://ssl.google-analytics.com/ga.js
-	// 9d38f3624ed4a85c	https://golang.org/favicon.ico
-	// a0a6f47a8175a75e	https://golang.org/pkg/strconv/
-	// a95a6bc37488af73	https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
-	// bb9d1cda868d278c	https://golang.org/doc/gopher/pkg.png
-	// c2e0a9bb2e5b256d	https://golang.org/lib/godoc/jquery.treeview.css
-	// c47ff3921af67e65	https://golang.org/pkg/bytes/
-	// c6b1c75ee113a942	https://golang.org/lib/godoc/style.css
-	// df635ac21e8a65f1	https://golang.org/pkg/strings/
-	// eab39d1ceb121cdc	https://golang.org/lib/godoc/playground.js
-	// f21a90b578066ccc	https://golang.org/lib/godoc/jquery.treeview.edit.js
-	// fb4ae632c995772d	https://golang.org/pkg/builtin/
+	// https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
+	// https://golang.org/doc/gopher/pkg.png
+	// https://golang.org/favicon.ico
+	// https://golang.org/lib/godoc/godocs.js
+	// https://golang.org/lib/godoc/jquery.treeview.css
+	// https://golang.org/lib/godoc/jquery.treeview.edit.js
+	// https://golang.org/lib/godoc/jquery.treeview.js
+	// https://golang.org/lib/godoc/playground.js
+	// https://golang.org/lib/godoc/style.css
+	// https://golang.org/pkg/
+	// https://golang.org/pkg/bufio/
+	// https://golang.org/pkg/builtin/
+	// https://golang.org/pkg/bytes/
+	// https://golang.org/pkg/io/
+	// https://golang.org/pkg/io/ioutil/
+	// https://golang.org/pkg/os/
+	// https://golang.org/pkg/strconv/
+	// https://golang.org/pkg/strings/
+	// https://ssl.google-analytics.com/ga.js
 }
 
 func Example_header() {
-	cmd := exec.Command("./simplecache", "header", "-hash", "bb9d1cda868d278c", "../../testdata")
+	cmd := exec.Command("./simplecache", "header", "https://golang.org/doc/gopher/pkg.png", "../../testdata")
 
 	var output bytes.Buffer
 	cmd.Stdout = &output
@@ -67,8 +67,8 @@ func Example_header() {
 	}
 
 	lines := read(&output)
-	for _, line := range lines {
-		fmt.Println(line)
+	for i := range lines {
+		fmt.Println(lines[i])
 	}
 
 	// Output:
@@ -85,7 +85,7 @@ func Example_header() {
 }
 
 func Example_body() {
-	cmd := exec.Command("./simplecache", "body", "-hash", "bb9d1cda868d278c", "../../testdata")
+	cmd := exec.Command("./simplecache", "body", "https://golang.org/doc/gopher/pkg.png", "../../testdata")
 
 	var output bytes.Buffer
 	cmd.Stdout = &output

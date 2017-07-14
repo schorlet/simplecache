@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 )
 
-// Entry represents an entry as stored in the cache.
+// Entry represents a HTTP response as stored in the cache.
 type Entry struct {
 	URL       string
 	hash      uint64
-	cacheDir  string
+	path      string
 	fileSize  int64
 	keyLen    int64
 	offset1   int64
@@ -27,9 +27,11 @@ type Entry struct {
 	dataSize0 int64
 }
 
-// OpenEntry returns the Entry specified by hash, in the cache at dir.
-func OpenEntry(hash uint64, dir string) (*Entry, error) {
-	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
+// Get returns the Entry for the specified URL.
+func Get(url, path string) (*Entry, error) {
+	hash := sha1sum(url)
+
+	name := filepath.Join(path, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
@@ -43,7 +45,7 @@ func OpenEntry(hash uint64, dir string) (*Entry, error) {
 
 	entry := Entry{
 		hash:     hash,
-		cacheDir: dir,
+		path:     path,
 		fileSize: stat.Size(),
 	}
 
@@ -60,8 +62,8 @@ func OpenEntry(hash uint64, dir string) (*Entry, error) {
 	return &entry, nil
 }
 
-func readURL(hash uint64, dir string) (string, error) {
-	name := filepath.Join(dir, fmt.Sprintf("%016x_0", hash))
+func readURL(hash uint64, path string) (string, error) {
+	name := filepath.Join(path, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return "", fmt.Errorf("unable to open entry: %v", err)
@@ -219,7 +221,7 @@ func (e *Entry) readStream1(file *os.File) error {
 
 // Header returns the HTTP header.
 func (e *Entry) Header() (http.Header, error) {
-	name := filepath.Join(e.cacheDir, fmt.Sprintf("%016x_0", e.hash))
+	name := filepath.Join(e.path, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)
@@ -270,10 +272,10 @@ func (e *Entry) Header() (http.Header, error) {
 // Body returns the HTTP body.
 func (e *Entry) Body() (io.ReadCloser, error) {
 	if e.dataSize1 == 0 {
-		return newSparseReader(e.hash, e.cacheDir)
+		return newSparseReader(e.hash, e.path)
 	}
 
-	name := filepath.Join(e.cacheDir, fmt.Sprintf("%016x_0", e.hash))
+	name := filepath.Join(e.path, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)

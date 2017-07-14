@@ -8,20 +8,14 @@ import (
 	"github.com/schorlet/simplecache"
 )
 
-// Example gets an entry from the cache and prints to stdout.
+// Example gets an entry from the cache and prints it to stdout.
 func Example() {
-	cache, err := simplecache.Open("testdata")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	entry, err := cache.OpenURL("https://golang.org/doc/gopher/pkg.png")
+	entry, err := simplecache.Get("https://golang.org/doc/gopher/pkg.png", "testdata")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(entry.URL)
 
-	// header
 	header, err := entry.Header()
 	if err != nil {
 		log.Fatal(err)
@@ -30,16 +24,16 @@ func Example() {
 		fmt.Printf("%s: %s\n", key, header.Get(key))
 	}
 
-	// body
 	body, err := entry.Body()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer body.Close()
+
 	config, err := png.DecodeConfig(body)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer body.Close()
 
 	fmt.Printf("PNG image data, %d x %d\n", config.Width, config.Height)
 

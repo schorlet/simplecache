@@ -7,74 +7,47 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
-// Cache gives read-access to the chromium cache.
+// URLs returns all the URLs currently stored.
 //
 // On linux, valid cache paths are:
 //  ~/.cache/chromium/Default/Cache
 //  ~/.cache/chromium/Default/Media Cache
-type Cache struct {
-	dir    string // cache directory
-	once   sync.Once
-	hashes []uint64 // []entry.hash
-	urls   []string // []entry.key
-}
-
-// Open opens the simple cache at dir.
-func Open(dir string) (*Cache, error) {
-	err := checkCache(dir)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cache: %v", err)
+func URLs(path string) ([]string, error) {
+	var urls []string
+	if err := checkIndex(path); err != nil {
+		return urls, fmt.Errorf("invalid cache: %v", err)
 	}
 
-	name := filepath.Join(dir, "index-dir", "the-real-index")
-	file, err := os.Open(name)
+	hashes, err := readRealIndex(path)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open index: %v", err)
+		return urls, fmt.Errorf("invalid cache: %v", err)
 	}
-	defer close(file)
+	urls = make([]string, 0, len(hashes))
 
-	return readIndex(file)
-}
-
-// OpenURL returns the Entry specified by url.
-func (c *Cache) OpenURL(url string) (*Entry, error) {
-	hash := Hash(url)
-	return OpenEntry(hash, c.dir)
-}
-
-// URLs returns all the URLs currently stored.
-func (c *Cache) URLs() []string {
-	c.once.Do(c.readURLs)
-	return c.urls
-}
-
-func (c *Cache) readURLs() {
-	c.urls = make([]string, 0, len(c.hashes))
-
-	for _, hash := range c.hashes {
-		url, err := readURL(hash, c.dir)
+	for i := 0; i < len(hashes); i++ {
+		url, err := readURL(hashes[i], path)
 		if err != nil {
-			log.Printf("Unable to read hash %016x: %v\n", hash, err)
+			log.Printf("Unable to read url %s: %v\n", url, err)
 			continue
 		}
-		c.urls = append(c.urls, url)
+		urls = append(urls, url)
 	}
+	return urls, nil
 }
 
-func checkCache(dir string) error {
-	info, err := os.Stat(dir)
+// checkIndex verifies the index file format.
+func checkIndex(path string) error {
+	info, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("unable to stat %q: %v", dir, err)
+		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}
-
 	if !info.IsDir() {
-		return fmt.Errorf("not a directory: %q", dir)
+		return fmt.Errorf("not a directory: %q", path)
 	}
 
-	file, err := os.Open(filepath.Join(dir, "index"))
+	file, err := os.Open(filepath.Join(path, "index"))
 	if err != nil {
 		return fmt.Errorf("unable to open fakeIndex: %v", err)
 	}
@@ -90,52 +63,64 @@ func checkCache(dir string) error {
 		return fmt.Errorf("bad magic number: %x, want: %x",
 			index.Magic, initialMagicNumber)
 	}
-
 	if index.Version < indexVersion {
-		return fmt.Errorf("bad version: %d, want: >=%d",
+		return fmt.Errorf("bad version: %d, want: >= %d",
 			index.Version, indexVersion)
 	}
-
 	return nil
 }
 
-func readIndex(file *os.File) (*Cache, error) {
-	index := new(indexHeader)
-	err := binary.Read(file, binary.LittleEndian, index)
+// readRealIndex reads every index-entries in "the-real-index" file.
+func readRealIndex(path string) ([]uint64, error) {
+	var hashes []uint64
+
+	name := filepath.Join(path, "index-dir", "the-real-index")
+	file, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read index: %v", err)
+		return hashes, fmt.Errorf("unable to open the-real-index: %v", err)
+	}
+	defer close(file)
+
+	var index indexHeader
+	err = binary.Read(file, binary.LittleEndian, &index)
+	if err != nil {
+		return hashes, fmt.Errorf("unable to read the-real-index: %v", err)
 	}
 
-	if index.Magic != indexMagicNumber {
-		return nil, fmt.Errorf("bad magic number: %x, want: %x",
-			index.Magic, indexMagicNumber)
+	if err := checkRealIndex(index); err != nil {
+		return hashes, fmt.Errorf("invalid header: %v", err)
 	}
-	if index.Version < indexVersion {
-		return nil, fmt.Errorf("bad version: %d, want: >=%d",
-			index.Version, indexVersion)
-	}
-
-	cache := Cache{
-		dir:    filepath.Dir(filepath.Dir(file.Name())),
-		hashes: make([]uint64, index.EntryCount),
-	}
-
 	if index.Version > indexVersion {
 		var reasonSize int64 = 4 // last write reason
 		_, err = file.Seek(reasonSize, io.SeekCurrent)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read 'last write reason': %v", err)
+			return hashes, fmt.Errorf("unable to read 'last write reason': %v", err)
 		}
 	}
 
+	hashes = make([]uint64, index.EntryCount)
 	var entry indexEntry
+
 	for i := uint64(0); i < index.EntryCount; i++ {
 		err = binary.Read(file, binary.LittleEndian, &entry)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read entry: %v", err)
 		}
-		cache.hashes[i] = entry.Hash
+		hashes[i] = entry.Hash
 	}
 
-	return &cache, nil
+	return hashes, nil
+}
+
+// checkRealIndex verifies the "the-real-index" header.
+func checkRealIndex(index indexHeader) error {
+	if index.Magic != indexMagicNumber {
+		return fmt.Errorf("bad magic number: %x, want: %x",
+			index.Magic, indexMagicNumber)
+	}
+	if index.Version < indexVersion {
+		return fmt.Errorf("bad version: %d, want: >= %d",
+			index.Version, indexVersion)
+	}
+	return nil
 }

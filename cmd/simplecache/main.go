@@ -1,142 +1,106 @@
-// Command simplecache helps reading Chromium simple cache on command line.
+// Command simplecache helps reading chromium simple cache v6 or v7.
 //
 //  Usage:
-//	simplecache command [flag] CACHEDIR
+//	simplecache command [url] path
 //
 //	The commands are:
-//		list        list entries
-//		header      print entry header
-//		body        print entry body
+//		list        print cache urls
+//		header      print url header
+//		body        print url body
 //
-//	The flags are:
-//		-url string        entry url
-//		-hash string       entry hash
-//
-//	CACHEDIR is the path to the chromium cache directory.
+//	path is the path to the chromium cache directory.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/schorlet/simplecache"
 )
 
-const usage = `simplecache is a tool for reading Chromium simple cache v6 or v7.
+const usage = `simplecache helps reading chromium simple cache v6 or v7.
 
 Usage:
-    simplecache command [flag] CACHEDIR
+    simplecache command [url] path
 
 The commands are:
-    list        list entries
-    header      print entry header
-    body        print entry body
+    list        print cache urls
+    header      print url header
+    body        print url body
 
-The flags are:
-    -url string        entry url
-    -hash string       entry hash
-
-CACHEDIR is the path to the chromium cache directory.
+path is the path to the chromium cache directory.
 `
 
 func main() {
 	log.SetFlags(0)
 
-	var cmd, url, hash, cachedir string
-	parseArgs(&cmd, &url, &hash, &cachedir)
+	var cmd, url, path string
+	parseArgs(&cmd, &url, &path)
 
 	if cmd == "list" {
-		cache, err := simplecache.Open(cachedir)
-		if err != nil {
-			log.Fatalf("Unable to open cache: %v", err)
-		}
-
-		for _, url := range cache.URLs() {
-			hash := simplecache.Hash(url)
-			fmt.Printf("%016x\t%s\n", hash, url)
-		}
+		printList(path)
 
 	} else if cmd == "header" {
-		entry := openEntry(url, hash, cachedir)
-		printHeader(entry)
+		printHeader(url, path)
 
 	} else if cmd == "body" {
-		entry := openEntry(url, hash, cachedir)
-		printBody(entry)
+		printBody(url, path)
 
 	} else {
 		log.Fatalf("Unknown command: %s", cmd)
 	}
 }
 
-func parseArgs(cmd, url, hash, cachedir *string) {
+func parseArgs(cmd, url, path *string) {
 	if len(os.Args) == 1 {
 		log.Fatal(usage)
 	}
 
-	// cmd
 	*cmd = os.Args[1]
 
-	// flags
-	flags := flag.NewFlagSet("", flag.ExitOnError)
-	flags.Usage = func() { log.Println(usage) }
-
-	flags.StringVar(url, "url", "", "entry url")
-	flags.StringVar(hash, "hash", "", "entry hash")
-
-	err := flags.Parse(os.Args[2:])
-	if err != nil {
-		log.Fatalf("Unable to parse args: %v", err)
+	if *cmd == "list" {
+		*path = os.Args[2]
+	} else {
+		*url = os.Args[2]
+		*path = os.Args[3]
 	}
-
-	if *cmd != "list" && flags.NFlag() != 1 {
-		log.Fatal(usage)
-	}
-
-	if flags.NArg() != 1 {
-		log.Fatal(usage)
-	}
-
-	*cachedir = flags.Arg(0)
 }
 
-func openEntry(url, hash, dir string) *simplecache.Entry {
-	var id uint64
-	var err error
-
-	if hash != "" {
-		id, err = strconv.ParseUint(hash, 16, 64)
-	} else {
-		id = simplecache.Hash(url)
-	}
-
+func printList(path string) {
+	urls, err := simplecache.URLs(path)
 	if err != nil {
-		log.Fatalf("Unable to parse hash: %v", err)
+		log.Fatalf("Unable to open cache: %v", err)
 	}
 
-	entry, err := simplecache.OpenEntry(id, dir)
+	for i := 0; i < len(urls); i++ {
+		fmt.Println(urls[i])
+	}
+}
+
+func printHeader(url, path string) {
+	entry, err := simplecache.Get(url, path)
 	if err != nil {
 		log.Fatalf("Unable to open entry: %v", err)
 	}
 
-	return entry
-}
-
-func printHeader(entry *simplecache.Entry) {
 	header, err := entry.Header()
 	if err != nil {
 		log.Fatalf("Unable to read header: %v", err)
 	}
+
 	for key := range header {
 		fmt.Printf("%s: %s\n", key, header.Get(key))
 	}
 }
 
-func printBody(entry *simplecache.Entry) {
+func printBody(url, path string) {
+	entry, err := simplecache.Get(url, path)
+	if err != nil {
+		log.Fatalf("Unable to open entry: %v", err)
+	}
+
 	body, err := entry.Body()
 	if err != nil {
 		log.Fatalf("Unable to read body: %v", err)
@@ -146,10 +110,5 @@ func printBody(entry *simplecache.Entry) {
 	_, err = io.Copy(os.Stdout, body)
 	if err != nil {
 		log.Fatalf("Unable to copy body to stdout: %v", err)
-	}
-
-	err = body.Close()
-	if err != nil {
-		log.Fatalf("Unable to close body: %v", err)
 	}
 }

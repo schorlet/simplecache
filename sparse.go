@@ -10,8 +10,8 @@ import (
 	"sort"
 )
 
-func newSparseReader(hash uint64, cacheDir string) (io.ReadCloser, error) {
-	name := filepath.Join(cacheDir, fmt.Sprintf("%016x_s", hash))
+func newSparseReader(hash uint64, path string) (io.ReadCloser, error) {
+	name := filepath.Join(path, fmt.Sprintf("%016x_s", hash))
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open entry: %v", err)

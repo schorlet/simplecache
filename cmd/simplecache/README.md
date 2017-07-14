@@ -1,35 +1,40 @@
 simplecache client
 ==================
 
+```sh
+$ URL=https://golang.org/doc/gopher/pkg.png
+$ CHROME_CACHE=../../testdata/
+```
+
 ### List all entries
 
 ```sh
-$ simplecache list ../../testdata/
-a0a6f47a8175a75e	https://golang.org/pkg/strconv/
-df635ac21e8a65f1	https://golang.org/pkg/strings/
-4e5b177c943d8ee0	https://golang.org/pkg/io/ioutil/
-55782b6621f25a58	https://golang.org/pkg/io/
-c47ff3921af67e65	https://golang.org/pkg/bytes/
-6a5a092a607295ea	https://golang.org/pkg/bufio/
-9d38f3624ed4a85c	https://golang.org/favicon.ico
-c6b1c75ee113a942	https://golang.org/lib/godoc/style.css
-bb9d1cda868d278c	https://golang.org/doc/gopher/pkg.png
-36d2a4716c77194d	https://golang.org/lib/godoc/jquery.treeview.js
-8e8dcd288a0d7920	https://ssl.google-analytics.com/ga.js
-329f9c2d34eb0523	https://golang.org/pkg/os/
-c2e0a9bb2e5b256d	https://golang.org/lib/godoc/jquery.treeview.css
-f21a90b578066ccc	https://golang.org/lib/godoc/jquery.treeview.edit.js
-eab39d1ceb121cdc	https://golang.org/lib/godoc/playground.js
-a95a6bc37488af73	https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
-fb4ae632c995772d	https://golang.org/pkg/builtin/
-4d522977a9d92736	https://golang.org/pkg/
-51d54ab35ce343ea	https://golang.org/lib/godoc/godocs.js
+$ simplecache list $CHROME_CACHE
+https://golang.org/pkg/strconv/
+https://golang.org/pkg/strings/
+https://golang.org/pkg/io/ioutil/
+https://golang.org/pkg/io/
+https://golang.org/pkg/bytes/
+https://golang.org/pkg/bufio/
+https://golang.org/favicon.ico
+https://golang.org/lib/godoc/style.css
+https://golang.org/doc/gopher/pkg.png
+https://golang.org/lib/godoc/jquery.treeview.js
+https://ssl.google-analytics.com/ga.js
+https://golang.org/pkg/os/
+https://golang.org/lib/godoc/jquery.treeview.css
+https://golang.org/lib/godoc/jquery.treeview.edit.js
+https://golang.org/lib/godoc/playground.js
+https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
+https://golang.org/pkg/builtin/
+https://golang.org/pkg/
+https://golang.org/lib/godoc/godocs.js
 ```
 
 ### Print entry header
 
 ```sh
-$ simplecache header -hash bb9d1cda868d278c ../../testdata/
+$ simplecache header $URL $CHROME_CACHE
 Status: 200
 Content-Type: image/png
 Content-Length: 5409
@@ -45,12 +50,12 @@ Alt-Svc: quic=":443"; ma=2592000; v="36,35,34,33,32,31,30,29,28,27,26,25"
 ### Print entry body
 
 ```sh
-$ simplecache body -hash bb9d1cda868d278c ../../testdata/ | file -
+$ simplecache body $URL $CHROME_CACHE | file -
 /dev/stdin: PNG image data, 83 x 120, 8-bit grayscale, non-interlaced
 ```
 
 ```sh
-$ simplecache body -hash bb9d1cda868d278c ../../testdata/ | hexdump -C -n 32
+$ simplecache body $URL $CHROME_CACHE | hexdump -C -n 32
 00000000  89 50 4e 47 0d 0a 1a 0a  00 00 00 0d 49 48 44 52  |.PNG........IHDR|
 00000010  00 00 00 53 00 00 00 78  08 00 00 00 00 ab b2 91  |...S...x........|
 00000020
