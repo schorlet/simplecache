@@ -9,7 +9,7 @@ import (
 	"github.com/schorlet/simplecache"
 )
 
-func TestCrawl(t *testing.T) {
+func TestURLs(t *testing.T) {
 	urls, err := simplecache.URLs("testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -19,16 +19,15 @@ func TestCrawl(t *testing.T) {
 	}
 
 	for i := range urls {
-		openURL(t, urls[i], "testdata")
+		getURL(t, urls[i], "testdata")
 	}
 }
 
-func openURL(t *testing.T, url, path string) {
+func getURL(t *testing.T, url, path string) {
 	entry, err := simplecache.Get(url, path)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if entry.URL != url {
 		t.Fatalf("bad url: %s, want: %s", entry.URL, url)
 	}
@@ -63,51 +62,9 @@ func openURL(t *testing.T, url, path string) {
 	}
 }
 
-func TestBadEntry(t *testing.T) {
+func TestBadURL(t *testing.T) {
 	_, err := simplecache.Get("http://foo.com", "testdata")
 	if err == nil {
 		t.Fatalf("got: nil, want: an error")
-	}
-}
-
-func TestEntry(t *testing.T) {
-	url := "https://golang.org/doc/gopher/pkg.png"
-	entry, err := simplecache.Get(url, "testdata")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if entry.URL != url {
-		t.Fatalf("bad url: %s, want: %s", entry.URL, url)
-	}
-
-	header, err := entry.Header()
-	if err != nil {
-		t.Fatal(err)
-	}
-	cl := header.Get("Content-Length")
-	if cl != "5409" {
-		t.Fatalf("bad content-length: %s, want: 5409", cl)
-	}
-	ct := header.Get("Content-Type")
-	if ct != "image/png" {
-		t.Fatalf("bad content-type: %s, want: image/png", ct)
-	}
-
-	body, err := entry.Body()
-	if err != nil {
-		t.Fatal(err)
-	}
-	n, err := io.Copy(ioutil.Discard, body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n != 5409 {
-		t.Fatalf("bad stream length: %d, want: 5409", n)
-	}
-
-	err = body.Close()
-	if err != nil {
-		t.Fatal(err)
 	}
 }
