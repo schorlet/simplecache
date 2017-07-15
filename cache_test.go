@@ -15,29 +15,29 @@ func TestURLs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(urls) == 0 {
-		t.Fatal("empty cache")
+		t.Fatal("urls is empty")
 	}
 
 	for i := range urls {
-		getURL(t, urls[i], "testdata")
+		testEntry(t, urls[i], "testdata")
 	}
 }
 
-func getURL(t *testing.T, url, path string) {
+func testEntry(t *testing.T, url, path string) {
 	entry, err := simplecache.Get(url, path)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("get entry: %v", err)
 	}
 	if entry.URL != url {
-		t.Fatalf("bad url: %s, want: %s", entry.URL, url)
+		t.Fatalf("url: %s, want: %s", entry.URL, url)
 	}
 
 	header, err := entry.Header()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("header: %v", err)
 	}
 	if len(header) == 0 {
-		t.Fatal("got: empty header")
+		t.Fatal("header is empty")
 	}
 	clength := header.Get("Content-Length")
 	nlength, err := strconv.ParseInt(clength, 10, 64)
@@ -47,24 +47,23 @@ func getURL(t *testing.T, url, path string) {
 
 	body, err := entry.Body()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("body: %v", err)
 	}
 	n, err := io.Copy(ioutil.Discard, body)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("discard body: %v", err)
 	}
-	err = body.Close()
-	if err != nil {
-		t.Fatal(err)
+	if err = body.Close(); err != nil {
+		t.Fatalf("close body: %v", err)
 	}
 	if n != nlength {
-		t.Fatalf("bad stream-length: %d, want: %d", n, nlength)
+		t.Fatalf("body stream-length: %d, want: %d", n, nlength)
 	}
 }
 
 func TestBadURL(t *testing.T) {
 	_, err := simplecache.Get("http://foo.com", "testdata")
 	if err == nil {
-		t.Fatalf("got: nil, want: an error")
+		t.Fatalf("err is nil")
 	}
 }

@@ -71,7 +71,7 @@ func parseArgs(cmd, url, path *string) {
 func printList(path string) {
 	urls, err := simplecache.URLs(path)
 	if err != nil {
-		log.Fatalf("Unable to open cache: %v", err)
+		log.Fatalf("Unable to get urls: %v", err)
 	}
 
 	for i := 0; i < len(urls); i++ {

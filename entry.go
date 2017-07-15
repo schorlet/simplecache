@@ -15,6 +15,12 @@ import (
 )
 
 // Entry represents a HTTP response as stored in the cache.
+//
+// The functions Get, Header and Body read a file named "path/hash(url)_0".
+// Body may read a file named "path/hash(url)_s".
+//
+// An error is returned if the file does not exist
+// or when the format does not match.
 type Entry struct {
 	URL       string
 	hash      uint64
@@ -27,6 +33,7 @@ type Entry struct {
 	dataSize0 int64
 }
 
+
 // Get returns the Entry for the specified URL.
 func Get(url, path string) (*Entry, error) {
 	hash := sha1sum(url)
@@ -34,13 +41,13 @@ func Get(url, path string) (*Entry, error) {
 	name := filepath.Join(path, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open entry: %v", err)
+		return nil, fmt.Errorf("getting %s: %v", url, err)
 	}
 	defer close(file)
 
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("unable to stat entry: %v", err)
+		return nil, fmt.Errorf("getting %s: %v", url, err)
 	}
 
 	entry := Entry{
@@ -50,13 +57,13 @@ func Get(url, path string) (*Entry, error) {
 	}
 
 	if err = entry.readHeader(file); err != nil {
-		return nil, fmt.Errorf("unable to read entry header: %v", err)
+		return nil, fmt.Errorf("getting %s: %v", url, err)
 	}
 	if err = entry.readStream0(file); err != nil {
-		return nil, fmt.Errorf("unable to read entry stream0: %v", err)
+		return nil, fmt.Errorf("getting %s: %v", url, err)
 	}
 	if err = entry.readStream1(file); err != nil {
-		return nil, fmt.Errorf("unable to read entry stream1: %v", err)
+		return nil, fmt.Errorf("getting %s: %v", url, err)
 	}
 
 	return &entry, nil
@@ -66,14 +73,14 @@ func readURL(hash uint64, path string) (string, error) {
 	name := filepath.Join(path, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
 	if err != nil {
-		return "", fmt.Errorf("unable to open entry: %v", err)
+		return "", fmt.Errorf("readurl %016x_0: %v", hash, err)
 	}
 	defer close(file)
 
 	var entry Entry
 	err = entry.readHeader(file)
 	if err != nil {
-		return "", fmt.Errorf("unable to read entry header: %v", err)
+		return "", fmt.Errorf("readurl %016x_0: %v", hash, err)
 	}
 	return entry.URL, nil
 }
@@ -82,15 +89,15 @@ func (e *Entry) readHeader(file io.Reader) error {
 	var header entryHeader
 	err := binary.Read(file, binary.LittleEndian, &header)
 	if err != nil {
-		return fmt.Errorf("unable to read header: %v", err)
+		return fmt.Errorf("read header: %v", err)
 	}
 
 	if header.Magic != initialMagicNumber {
-		return fmt.Errorf("bad magic number: %x, want: %x",
+		return fmt.Errorf("header magic: %x, want: %x",
 			header.Magic, initialMagicNumber)
 	}
 	if header.Version != entryVersion {
-		return fmt.Errorf("bad version: %d, want: %d",
+		return fmt.Errorf("header version: %d, want: %d",
 			header.Version, entryVersion)
 	}
 
@@ -100,12 +107,12 @@ func (e *Entry) readHeader(file io.Reader) error {
 	key := make([]byte, header.KeyLen)
 	err = binary.Read(file, binary.LittleEndian, &key)
 	if err != nil {
-		return fmt.Errorf("unable to read header key: %v", err)
+		return fmt.Errorf("read header key: %v", err)
 	}
 
 	sfh := superFastHash(key)
 	if header.KeyHash != sfh {
-		return fmt.Errorf("bad key hash: %x, want: %x",
+		return fmt.Errorf("header key hash: %x, want: %x",
 			header.KeyHash, sfh)
 	}
 
@@ -120,16 +127,16 @@ func (e *Entry) readStream0(file *os.File) error {
 
 	_, err := file.Seek(-1*entryEOFSize, io.SeekEnd)
 	if err != nil {
-		return fmt.Errorf("unable to seek stream0: %v", err)
+		return fmt.Errorf("seek stream0: %v", err)
 	}
 
 	err = binary.Read(file, binary.LittleEndian, &stream0EOF)
 	if err != nil {
-		return fmt.Errorf("unable to read stream0EOF: %v", err)
+		return fmt.Errorf("read stream0 entryEOF: %v", err)
 	}
 
 	if stream0EOF.Magic != finalMagicNumber {
-		return fmt.Errorf("bad magic number: %x, want: %x",
+		return fmt.Errorf("stream0 magic: %x, want: %x",
 			stream0EOF.Magic, finalMagicNumber)
 	}
 
@@ -148,12 +155,12 @@ func (e *Entry) readStream0(file *os.File) error {
 		stream0 := make([]byte, e.dataSize0)
 		_, err = file.ReadAt(stream0, e.offset0)
 		if err != nil {
-			return fmt.Errorf("unable to read stream0: %v", err)
+			return fmt.Errorf("read stream0: %v", err)
 		}
 
 		actualCRC := crc32.ChecksumIEEE(stream0)
 		if stream0EOF.CRC != actualCRC {
-			return fmt.Errorf("bad CRC: %x, want: %x",
+			return fmt.Errorf("stream0 CRC: %x, want: %x",
 				stream0EOF.CRC, actualCRC)
 		}
 	}
@@ -164,12 +171,12 @@ func (e *Entry) readStream0(file *os.File) error {
 
 		_, err = file.ReadAt(expectedSum256[:], offset256)
 		if err != nil {
-			return fmt.Errorf("unable to read sha256: %v", err)
+			return fmt.Errorf("read stream0 sha256: %v", err)
 		}
 
 		actualSum256 := sha256.Sum256([]byte(e.URL))
 		if expectedSum256 != actualSum256 {
-			return fmt.Errorf("bad sha256: %x, want: %x",
+			return fmt.Errorf("stream0 sha256: %x, want: %x",
 				expectedSum256, actualSum256)
 		}
 	}
@@ -182,16 +189,16 @@ func (e *Entry) readStream1(file *os.File) error {
 
 	_, err := file.Seek(e.offset0-entryEOFSize, io.SeekStart)
 	if err != nil {
-		return fmt.Errorf("unable to seek stream1: %v", err)
+		return fmt.Errorf("seek stream1: %v", err)
 	}
 
 	err = binary.Read(file, binary.LittleEndian, &stream1EOF)
 	if err != nil {
-		return fmt.Errorf("unable to read stream1EOF: %v", err)
+		return fmt.Errorf("read stream1 entryEOF: %v", err)
 	}
 
 	if stream1EOF.Magic != finalMagicNumber {
-		return fmt.Errorf("bad magic number: %x, want: %x",
+		return fmt.Errorf("stream1 magic: %x, want: %x",
 			stream1EOF.Magic, finalMagicNumber)
 	}
 
@@ -206,12 +213,12 @@ func (e *Entry) readStream1(file *os.File) error {
 		stream1 := make([]byte, e.dataSize1)
 		_, err := file.ReadAt(stream1, e.offset1)
 		if err != nil {
-			return fmt.Errorf("unable to read stream1: %v", err)
+			return fmt.Errorf("read stream1: %v", err)
 		}
 
 		actualCRC := crc32.ChecksumIEEE(stream1)
 		if stream1EOF.CRC != actualCRC {
-			return fmt.Errorf("bad CRC: %x, want: %x",
+			return fmt.Errorf("stream1 CRC: %x, want: %x",
 				stream1EOF.CRC, actualCRC)
 		}
 	}
@@ -224,14 +231,14 @@ func (e *Entry) Header() (http.Header, error) {
 	name := filepath.Join(e.path, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open entry: %v", err)
+		return nil, fmt.Errorf("open header: %v", err)
 	}
 	defer close(file)
 
 	stream0 := make([]byte, e.dataSize0)
 	_, err = file.ReadAt(stream0, e.offset0)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read stream0: %v", err)
+		return nil, fmt.Errorf("read header: %v", err)
 	}
 
 	var meta struct {
@@ -245,13 +252,13 @@ func (e *Entry) Header() (http.Header, error) {
 	reader := bytes.NewReader(stream0)
 	err = binary.Read(reader, binary.LittleEndian, &meta)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read metadata: %v", err)
+		return nil, fmt.Errorf("read header metadata: %v", err)
 	}
 
 	buf := make([]byte, meta.HeaderSize)
 	err = binary.Read(reader, binary.LittleEndian, buf)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read headersize: %v", err)
+		return nil, fmt.Errorf("read header size: %v", err)
 	}
 
 	header := make(http.Header)
@@ -278,14 +285,14 @@ func (e *Entry) Body() (io.ReadCloser, error) {
 	name := filepath.Join(e.path, fmt.Sprintf("%016x_0", e.hash))
 	file, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open entry: %v", err)
+		return nil, fmt.Errorf("open body: %v", err)
 	}
 	defer close(file)
 
 	stream1 := make([]byte, e.dataSize1)
 	_, err = file.ReadAt(stream1, e.offset1)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read stream1: %v", err)
+		return nil, fmt.Errorf("read body: %v", err)
 	}
 
 	reader := bytes.NewReader(stream1)
@@ -294,6 +301,6 @@ func (e *Entry) Body() (io.ReadCloser, error) {
 
 func close(f *os.File) {
 	if err := f.Close(); err != nil {
-		log.Printf("Error closing file %q: %v\n", f.Name(), err)
+		log.Printf("Error closing file %s: %v\n", f.Name(), err)
 	}
 }
