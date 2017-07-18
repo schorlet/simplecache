@@ -3,7 +3,6 @@
 package simplecache
 
 import (
-	"crypto/sha1"
 	"encoding/binary"
 	"log"
 )
@@ -56,32 +55,6 @@ type indexEntry struct {
 	LastUsed int64
 	Size     uint64
 }
-
-// sha1sum returns the first 64 bits of the SHA1 checksum of s.
-func sha1sum(s string) uint64 {
-	hash := sha1.New()
-
-	hash.Reset()
-	_, err := hash.Write([]byte(s))
-	if err != nil {
-		return 0
-	}
-
-	// sum is [20]byte
-	sum := hash.Sum(nil)
-
-	// uses the top 64 bits
-	return binary.LittleEndian.Uint64(sum[:8])
-}
-
-// An entry consists of:
-//  - an entryHeader.
-//  - the key.
-//  - the data from stream 1.
-//  - an entryEOF record for stream 1.
-//  - the data from stream 0.
-//  - (optionally) the SHA256 of the key.
-//  - an entryEOF record for stream 0.
 
 // entryHeader is the header of an entry file.
 type entryHeader struct {
@@ -137,19 +110,6 @@ func (ranges sparseRanges) Less(i, j int) bool {
 	var rng0, rng1 = ranges[i], ranges[j]
 	return rng0.Offset < rng1.Offset
 }
-
-// unix epoch - win epoch (µsec)
-// (1970-01-01 - 1601-01-01)
-/*
-const delta = int64(11644473600000000)
-
-func winTime(µsec int64) time.Time {
-	return time.Unix(0, (µsec-delta)*1e3)
-}
-func fromTime(t time.Time) int64 {
-	return t.UnixNano()/1e3 + delta
-}
-*/
 
 func init() {
 	var index indexHeader

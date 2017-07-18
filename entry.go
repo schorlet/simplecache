@@ -2,6 +2,7 @@ package simplecache
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
@@ -33,10 +34,10 @@ type Entry struct {
 	dataSize0 int64
 }
 
-
 // Get returns the Entry for the specified URL.
 func Get(url, path string) (*Entry, error) {
-	hash := sha1sum(url)
+	sum := sha1.Sum([]byte(url))
+	hash := binary.LittleEndian.Uint64(sum[:8])
 
 	name := filepath.Join(path, fmt.Sprintf("%016x_0", hash))
 	file, err := os.Open(name)
