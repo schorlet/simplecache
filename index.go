@@ -9,18 +9,16 @@ import (
 	"path/filepath"
 )
 
-// URLs returns all the URLs currently stored.
+// URLs returns all the URLs currently stored in the cache.
 //
 // On linux, valid cache paths are:
 //  ~/.cache/chromium/Default/Cache
 //  ~/.cache/chromium/Default/Media Cache
 //
 // URLs reads the files named "path/index" and "path/index-dir/the-real-index"
-// and every files named "path/hash" where hash is read from the-real-index file.
+// and every entry files named "path/hash(url)_0" where hash is read from the-real-index file.
 //
-// An error is returned on a problem with any of the two index files
-// but not for each individual entries.
-// In this situation the entry's URL is just not added to the returned URLs.
+// An error is returned if the format of the index files is unexpected.
 func URLs(path string) ([]string, error) {
 	var urls []string
 	if err := checkFakeIndex(path); err != nil {

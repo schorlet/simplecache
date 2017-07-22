@@ -16,12 +16,7 @@ import (
 )
 
 // Entry represents a HTTP response as stored in the cache.
-//
-// The functions Get, Header and Body read a file named "path/hash(url)_0".
-// Body may read a file named "path/hash(url)_s".
-//
-// An error is returned if the file does not exist
-// or when the format does not match.
+// Each entry is stored in a file named "path/hash(url)_0".
 type Entry struct {
 	URL       string
 	hash      uint64
@@ -35,6 +30,7 @@ type Entry struct {
 }
 
 // Get returns the Entry for the specified URL.
+// An error is returned if the format of the entry does not match the one expected.
 func Get(url, path string) (*Entry, error) {
 	sum := sha1.Sum([]byte(url))
 	hash := binary.LittleEndian.Uint64(sum[:8])
@@ -278,6 +274,7 @@ func (e *Entry) Header() (http.Header, error) {
 }
 
 // Body returns the HTTP body.
+// Body may read a file named "path/hash(url)_s".
 func (e *Entry) Body() (io.ReadCloser, error) {
 	if e.dataSize1 == 0 {
 		return newSparseReader(e.hash, e.path)
