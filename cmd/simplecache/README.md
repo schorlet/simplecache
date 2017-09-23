@@ -1,5 +1,22 @@
-simplecache client
-==================
+# simplecache
+
+This is the simplecache tool to read the Chromium simple cache from command line.
+
+
+## Usage
+
+```
+simplecache command [url] path
+
+The commands are:
+	list        print cache urls
+	header      print url header
+	body        print url body
+
+path is the path to the chromium cache directory.
+```
+
+## Examples
 
 ```sh
 $ URL=https://golang.org/doc/gopher/pkg.png
@@ -61,3 +78,13 @@ $ simplecache body $URL $CHROME_CACHE | hexdump -C -n 32
 00000020
 ```
 
+
+### Watch webm videos:
+
+```sh
+$ CHROME_CACHE=~/.cache/chromium/Default/Media\ Cache/
+$ simplecache list "$CHROME_CACHE" | grep 'webm$' | \
+while read URL; do
+	simplecache body $URL "$CHROME_CACHE" | vlc -q --play-and-exit -
+done
+```

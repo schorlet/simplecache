@@ -1,29 +1,16 @@
-simplecache [![GoDoc](https://godoc.org/github.com/schorlet/simplecache?status.png)](https://godoc.org/github.com/schorlet/simplecache)
-===
+# simplecache [![GoDoc](https://godoc.org/github.com/schorlet/simplecache?status.png)](https://godoc.org/github.com/schorlet/simplecache)
 
-Package simplecache provides support for reading Chromium simple cache v6 or v7.
+The simplecache package provides support for reading Chromium simple cache v6 or v7.
 
-Usage
------
+Learn more: http://www.chromium.org/developers/design-documents/network-stack/disk-cache/very-simple-backend
 
-See the [example_test.go](example_test.go) for a basic example.
+See the [example_test.go](example_test.go) for an example of how to read an image from cache in testdata.
 
-The simplecache command
------------------------
+This project also includes a tool to read the cache from command line, read this [README](cmd/simplecache).
 
-Watch webm videos from the cache:
 
-```sh
-$ go install ./cmd/simplecache
-$ CHROME_CACHE=~/.cache/chromium/Default/Media\ Cache/
-$ simplecache list "$CHROME_CACHE" | grep 'webm$' | \
-while read URL; do
-	$GOPATH/bin/simplecache body $URL "$CHROME_CACHE" | vlc -q --play-and-exit -
-done
-```
+## Short cache format
 
-Short cache format
-------------------
 
 The simple cache contains different files:
 
